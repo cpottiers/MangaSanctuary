@@ -4,12 +4,14 @@ import com.eightmotions.apis.tools.arrays.ArraysUtils;
 
 public class Tome {
     // TABLE VARIABLES
-    int    msSerieId;
-    int    msEditionId;
-    int    msId;
-    int    msNumber;
-    byte[] msIcon;
-    String msIconUrl;
+    public boolean isMissingTome = false;
+    private int    msSerieId;
+    private int    msEditionId;
+    private int    msId;
+    private int    msNumber;
+    private byte[] msIcon;
+    private String msIconUrl;
+    private String msTomePageUrl;
 
     // READ VARIABLES
 
@@ -34,6 +36,10 @@ public class Tome {
 
     public int getNumber() {
         return msNumber;
+    }
+
+    public String getTomePageUrl() {
+        return msTomePageUrl;
     }
 
     public void setNumber(int number) {
@@ -64,6 +70,10 @@ public class Tome {
         this.msEditionId = eid;
     }
 
+    public void setTomePageUrl(String msTomePageUrl) {
+        this.msTomePageUrl = msTomePageUrl;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (!(o instanceof Tome)) return false;
@@ -74,6 +84,9 @@ public class Tome {
         if (this.msNumber != ((Tome) o).msNumber) return false;
         if ((this.msIconUrl == null && ((Tome) o).msIconUrl != null)
             || (this.msIconUrl != null && !this.msIconUrl.equals(((Tome) o).msIconUrl)))
+            return false;
+        if ((this.msTomePageUrl == null && ((Tome) o).msTomePageUrl != null)
+            || (this.msTomePageUrl != null && !this.msTomePageUrl.equals(((Tome) o).msTomePageUrl)))
             return false;
         if (!ArraysUtils.equals(this.msIcon, ((Tome) o).msIcon)) return false;
 

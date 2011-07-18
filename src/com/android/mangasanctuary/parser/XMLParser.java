@@ -190,4 +190,102 @@ public class XMLParser {
         return tomes;
     }
 
+    public static ArrayList<Tome> parseMissingTomesXML(String result) {
+        Elements nodeList = null;
+        Element node = null;
+        ArrayList<Tome> tomes = new ArrayList<Tome>();
+        Tome tome = null;
+        Serie currentSerie = null;
+        int i, num;
+        try {
+            Document doc = Jsoup.parse(result);
+
+            // table collection
+            node = doc.getElementsByClass("collection").first();
+            nodeList = node.getElementsByTag("tr");
+
+            for (i = 0; i < nodeList.size(); i++) {
+                node = nodeList.get(i);
+                // zap headers
+                if (i == 0) continue;
+                // new serie
+                if (!node.hasAttr("class")) {
+                    node = node.getElementsByClass("nom_serie_gros").first();
+                    Log.v(Global.getLogTag(XMLParser.class), "missing xml serie node="
+                        + node.outerHtml() + " text=" + node.ownText());
+                    currentSerie = Global.getAdaptor().lookupSerieFromName(node.ownText());
+                }
+                else if (currentSerie != null) {
+                    node = node.getElementsByTag("a").first();
+                    Log.v(Global.getLogTag(XMLParser.class), "missing xml tome node="
+                        + node.outerHtml() + " text=" + node.ownText());
+                    tome = new Tome();
+                    tome.setSerieId(currentSerie.getId());
+                    try {
+                        num = Integer.parseInt(node.ownText().substring(node.ownText().lastIndexOf(' ') + 1));
+                        tome.setNumber(num);
+                        tomes.add(tome);
+                    }
+                    catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+        return tomes;
+    }
+
+    public static ArrayList<Tome> parseMissingTomesMobileXML(String result) {
+        Element node = null;
+        ArrayList<Tome> tomes = new ArrayList<Tome>();
+        Tome tome = null;
+        Serie currentSerie = null;
+        int num;
+        String url = null;
+        try {
+            Document doc = Jsoup.parse(result);
+
+            // table collection
+            node = doc.getElementsByTag("h3").first();
+            while (node != null) {
+                if (node.tagName().equals("h3")) {
+                    Log.v(Global.getLogTag(XMLParser.class), "missing xml serie node="
+                        + node.ownText());
+                    currentSerie = Global.getAdaptor().lookupSerieFromName(node.ownText());
+                }
+                else if (node.tagName().equals("a") && currentSerie != null) {
+                    Log.v(Global.getLogTag(XMLParser.class), "missing xml tome node="
+                        + node.ownText());
+                    tome = new Tome();
+                    tome.setSerieId(currentSerie.getId());
+                    try {
+                        num = Integer.parseInt(node.ownText().substring(node.ownText().lastIndexOf(' ') + 1));
+                        url = node.attr("href");
+                        tome.setNumber(num);
+                        tome.setTomePageUrl(url);
+                        tome.isMissingTome = true;
+                        tomes.add(tome);
+                    }
+                    catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+                else {
+                    Log.v(Global.getLogTag(XMLParser.class), "missing xml zap node="
+                        + node.outerHtml());
+                }
+                node = node.nextElementSibling();
+            }
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+        return tomes;
+    }
+
 }

@@ -51,8 +51,9 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
     private final static int   SELECT_USER      = 0;
 
     private final static int   MENU_FIRST       = 0;
-    private final static int   MENU_REFRESH     = MENU_FIRST + 1;
-    private final static int   MENU_QUIT        = MENU_FIRST + 2;
+    private final static int   MENU_REFRESH     = MENU_FIRST + 100;
+    private final static int   MENU_SHOPPING    = MENU_FIRST + 150;
+    private final static int   MENU_QUIT        = MENU_FIRST + 200;
 
     SeriesAdapter              cursorAdapter    = null;
     Cursor                     serieCursor      = null;
@@ -93,7 +94,8 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
 
         private final CharArrayBuffer mBuffer              = new CharArrayBuffer(128);
         private int[]                 mCellStates;
-        private int                   mColumnNameIndex, mColumnIdIndex;
+        private int                   mColumnNameIndex, mColumnIdIndex,
+                mColumnCountIndex;
 
         HashMap<String, Integer>      alphaIndexer         = new HashMap<String, Integer>();
         String[]                      sections;
@@ -113,6 +115,7 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
             mCellStates = cursor == null ? null : new int[cursor.getCount()];
             mColumnNameIndex = cursor.getColumnIndex(MySQLiteOpenHelper.COL_SERIES_NAME);
             mColumnIdIndex = cursor.getColumnIndex("_id");
+            mColumnCountIndex = cursor.getColumnIndex("_count");
 
             alphaIndexer.clear();
             String section;
@@ -211,6 +214,12 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
 
             holder.title.setText(holder.titleBuffer.data, 0, holder.titleBuffer.sizeCopied);
             holder.title.setOnClickListener(MainActivity.this);
+
+            int count = cursor.getInt(mColumnCountIndex);
+            if (count == 0)
+                holder.title.setTextColor(Global.getResources().getColor(R.color.uptodateItemText));
+            else
+                holder.title.setTextColor(Global.getResources().getColor(R.color.missingItemText));
 
             int serie_id = cursor.getInt(mColumnIdIndex);
             Cursor c = Global.getAdaptor().getAllTomesFromSerieId(serie_id);
@@ -386,6 +395,7 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
                                            }
                                        }
                                            break;
+                                       case ServerConnector.WSEnum.SYNC_MISSING_VALUE:
                                        case ServerConnector.WSEnum.SYNC_SERIES_VALUE: {
                                            Bundle b = msg.getData();
                                            ErrorCode error = ErrorCode.getValue(b.getInt(ServerConnector.ERROR));
@@ -401,16 +411,22 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
                                                }
                                            }
                                            else {
-                                               // on rafraichit la liste des éléments manquants
+                                               if (msg.what == ServerConnector.WSEnum.SYNC_SERIES_VALUE) {
+                                                   // on rafraichit la liste des éléments manquants
+                                                   ServerConnector.syncMissing(this);
+                                               }
+                                               else {
+                                                   // on récupère les icon des éléments manquants
+                                                   Global.getAdaptor().checkMissingTomesIcons(handler);
+                                               }
+                                               // refresh listView
                                                try {
-                                                   // refresh listView
                                                    if (serieCursor != null)
                                                        serieCursor.requery();
                                                }
                                                catch (Exception e) {
                                                    e.printStackTrace();
                                                }
-
                                            }
                                            // Cancel progressDialog
                                            if (waitingDialog != null
@@ -558,10 +574,12 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        MenuItem rItem = menu.add(Menu.NONE, MENU_REFRESH, MENU_REFRESH, getResources().getString(R.string.Menu_Refresh));
-        rItem.setIcon(R.drawable.ic_menu_refresh);
-        MenuItem qItem = menu.add(Menu.NONE, MENU_QUIT, MENU_QUIT, getResources().getString(R.string.Menu_Quit));
-        qItem.setIcon(R.drawable.ic_menu_close_clear_cancel);
+        MenuItem item = menu.add(Menu.NONE, MENU_REFRESH, MENU_REFRESH, getResources().getString(R.string.Menu_Refresh));
+        item.setIcon(R.drawable.ic_menu_refresh);
+        item = menu.add(Menu.NONE, MENU_SHOPPING, MENU_SHOPPING, getResources().getString(R.string.Menu_ShoppingList));
+        item.setIcon(R.drawable.ic_menu_agenda);
+        item = menu.add(Menu.NONE, MENU_QUIT, MENU_QUIT, getResources().getString(R.string.Menu_Quit));
+        item.setIcon(R.drawable.ic_menu_close_clear_cancel);
 
         return super.onCreateOptionsMenu(menu);
     }
@@ -574,6 +592,10 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
                 if (isHttpProgress) break;
                 // on lance un refresh
                 ServerConnector.syncSeries(handler);
+                break;
+            case MENU_SHOPPING:
+                Intent intent = new Intent(this, ShoppingActivity.class);
+                startActivity(intent);
                 break;
             case MENU_QUIT:
                 finish();

@@ -11,6 +11,7 @@ import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.http.HttpException;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -19,6 +20,9 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 
 import android.content.res.Resources;
 import android.os.AsyncTask;
@@ -47,13 +51,17 @@ public class ServerConnector {
         GET_ID,
         SYNC_SERIES,
         SYNC_EDITION,
-        GET_TOMEICON;
+        GET_TOMEICON,
+        GET_MISSINGTOMEICON,
+        SYNC_MISSING;
 
-        public static final int UNKNOWN_VALUE      = -1;
-        public static final int GET_ID_VALUE       = 0;
-        public static final int SYNC_SERIES_VALUE  = 1;
-        public static final int SYNC_EDITION_VALUE = 2;
-        public static final int GET_TOMEICON_VALUE = 3;
+        public static final int UNKNOWN_VALUE             = -1;
+        public static final int GET_ID_VALUE              = 0;
+        public static final int SYNC_SERIES_VALUE         = 1;
+        public static final int SYNC_EDITION_VALUE        = 2;
+        public static final int SYNC_MISSING_VALUE        = 4;
+        public static final int GET_TOMEICON_VALUE        = 3;
+        public static final int GET_MISSINGTOMEICON_VALUE = 5;
 
         private WSEnum() {
         }
@@ -68,6 +76,10 @@ public class ServerConnector {
                     return SYNC_EDITION_VALUE;
                 case GET_TOMEICON:
                     return GET_TOMEICON_VALUE;
+                case SYNC_MISSING:
+                    return SYNC_MISSING_VALUE;
+                case GET_MISSINGTOMEICON:
+                    return GET_MISSINGTOMEICON_VALUE;
             }
             return UNKNOWN_VALUE;
         }
@@ -82,6 +94,10 @@ public class ServerConnector {
                     return SYNC_EDITION;
                 case GET_TOMEICON_VALUE:
                     return GET_TOMEICON;
+                case SYNC_MISSING_VALUE:
+                    return SYNC_MISSING;
+                case GET_MISSINGTOMEICON_VALUE:
+                    return GET_MISSINGTOMEICON;
             }
             return UNKNOWN;
         }
@@ -93,16 +109,20 @@ public class ServerConnector {
         NETWORK_ERROR,
         SYNCSERIES_ERROR,
         SYNCEDITION_ERROR,
+        SYNCMISSING_ERROR,
         GETID_ERROR,
-        GETICON_ERROR;
+        GETICON_ERROR,
+        GETMISSINGTOMEICON_ERROR, ;
 
-        public static final int NONE_VALUE              = 0;
-        public static final int UNKNOWN_VALUE           = 1;
-        public static final int NETWORK_ERROR_VALUE     = 2;
-        public static final int GETID_ERROR_VALUE       = 3;
-        public static final int SYNCSERIES_ERROR_VALUE  = 4;
-        public static final int SYNCEDITION_ERROR_VALUE = 5;
-        public static final int GETICON_ERROR_VALUE     = 6;
+        public static final int NONE_VALUE                     = 0;
+        public static final int UNKNOWN_VALUE                  = 1;
+        public static final int NETWORK_ERROR_VALUE            = 2;
+        public static final int GETID_ERROR_VALUE              = 3;
+        public static final int SYNCSERIES_ERROR_VALUE         = 4;
+        public static final int SYNCEDITION_ERROR_VALUE        = 5;
+        public static final int GETICON_ERROR_VALUE            = 6;
+        public static final int SYNCMISSING_ERROR_VALUE        = 7;
+        public static final int GETMISSINGTOMEICON_ERROR_VALUE = 8;
 
         private ErrorCode() {
         }
@@ -121,6 +141,10 @@ public class ServerConnector {
                     return GETID_ERROR_VALUE;
                 case GETICON_ERROR:
                     return GETICON_ERROR_VALUE;
+                case SYNCMISSING_ERROR:
+                    return SYNCMISSING_ERROR_VALUE;
+                case GETMISSINGTOMEICON_ERROR:
+                    return GETMISSINGTOMEICON_ERROR_VALUE;
             }
             return NONE_VALUE;
         }
@@ -139,6 +163,10 @@ public class ServerConnector {
                     return GETID_ERROR;
                 case GETICON_ERROR_VALUE:
                     return GETICON_ERROR;
+                case SYNCMISSING_ERROR_VALUE:
+                    return SYNCMISSING_ERROR;
+                case GETMISSINGTOMEICON_ERROR_VALUE:
+                    return GETMISSINGTOMEICON_ERROR;
             }
             return NONE;
         }
@@ -208,12 +236,21 @@ public class ServerConnector {
                     syncSeries(currentCmd, (String) currentCmd.params[0]);
                     break;
                 }
+                case SYNC_MISSING: {
+                    //                    syncMissing(currentCmd, (String) currentCmd.params[0]);
+                    syncMissingMobile(currentCmd, (String) currentCmd.params[0], (String) currentCmd.params[1]);
+                    break;
+                }
                 case SYNC_EDITION: {
                     syncEdition(currentCmd, (String) currentCmd.params[0], (String) currentCmd.params[1], (Integer) currentCmd.params[2]);
                     break;
                 }
                 case GET_TOMEICON: {
                     getTomeIcon(currentCmd, (Tome) currentCmd.params[0]);
+                    break;
+                }
+                case GET_MISSINGTOMEICON: {
+                    getMissingTomeIcon(currentCmd, (Tome) currentCmd.params[0]);
                     break;
                 }
             }
@@ -457,7 +494,7 @@ public class ServerConnector {
         try {
             int cIndex = response.indexOf("<table class=\"collection\"");
             // Empty collection
-            if(cIndex<0) return;
+            if (cIndex < 0) return;
             response = response.substring(cIndex);
             response = response.substring(0, response.indexOf("</table>") + 8);
             ArrayList<Serie> series = XMLParser.parseSeriesXML(response);
@@ -472,6 +509,148 @@ public class ServerConnector {
             return;
         }
     }
+
+    public static void syncMissing(Handler handler) {
+        Log.d(Global.getLogTag(ServerConnector.class), "PUSH SYNC MISSING uid="
+            + Global.getUserID());
+
+        getInstance().pushCommand(WSEnum.SYNC_MISSING, handler, Global.getUsername(), Global.getPassword());
+    }
+
+    private static void syncMissingMobile(Command cmd, String username,
+            String password) {
+        Log.e(Global.getLogTag(ServerConnector.class), "[" + cmd.id
+            + "] EXEC SYNC MISSING MOBILE");
+        Resources res = Global.getResources();
+        String response;
+        try {
+            StringBuilder sb = new StringBuilder();
+            sb.append(res.getString(R.string.MS_ROOT_MOBILE));
+            sb.append(res.getString(R.string.MS_MISSING_CONNEXION));
+            List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
+            nameValuePairs.add(new BasicNameValuePair(res.getString(R.string.MS_LOGIN_CONNEXION), res.getString(R.string.MS_LOGIN_CONNEXION_VALUE)));
+            nameValuePairs.add(new BasicNameValuePair(res.getString(R.string.MS_LOGIN_LOGIN), res.getString(R.string.MS_LOGIN_LOGIN_VALUE)));
+            nameValuePairs.add(new BasicNameValuePair(res.getString(R.string.MS_LOGIN_PASSWORD), password));
+            nameValuePairs.add(new BasicNameValuePair(res.getString(R.string.MS_LOGIN_USERNAME), username));
+            URI uri = new URI(sb.toString());
+            HttpPost httpPost = new HttpPost(uri);
+            httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+
+            // Ajout de headers
+            httpPost.setHeader("Accept", "text/html,application/xhtml+xml,application/xml");
+            httpPost.setHeader("Accept-Charset", "ISO-8859-1,utf-8");
+
+            DefaultHttpClient httpClient = new DefaultHttpClient();
+            HttpResponse httpResponse = httpClient.execute(httpPost);
+            if (httpResponse == null || httpResponse.getStatusLine() == null
+                || httpResponse.getStatusLine().getStatusCode() != 200) {
+                throw new HttpException();
+            }
+
+            // On récupère la réponse dans un InputStream
+            InputStream inputStream = httpResponse.getEntity().getContent();
+            // On crée un bufferedReader pour pouvoir stocker le résultat dans un string
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+            // On lit ligne à ligne le bufferedReader pour le stocker dans le stringBuffer
+            String line = null;
+            sb = new StringBuilder();
+            while (null != (line = bufferedReader.readLine())) {
+                sb.append(line).append('\n');
+            }
+            if (sb.length() > 0) sb.deleteCharAt(sb.length() - 1);
+            response = sb.toString();
+            
+            CacheFileUtils.writeDebugFile("http_" + cmd.id + "_1.html", response);
+
+            //            CookieStore store = httpclient.getCookieStore();
+            //
+            //            httpclient = new DefaultHttpClient();
+            //            httpclient.setCookieStore(store);
+
+            sb = new StringBuilder();
+            sb.append(res.getString(R.string.MS_ROOT_MOBILE));
+            sb.append(res.getString(R.string.MS_MISSING_COLLECTION));
+            uri = new URI(sb.toString());
+            HttpGet httpGet = new HttpGet(uri);
+            httpResponse = httpClient.execute(httpGet);
+            if (httpResponse == null || httpResponse.getStatusLine() == null
+                || httpResponse.getStatusLine().getStatusCode() != 200) {
+                throw new HttpException(uri.toString());
+            }
+
+            // On récupère la réponse dans un InputStream
+            inputStream = httpResponse.getEntity().getContent();
+            // On crée un bufferedReader pour pouvoir stocker le résultat dans un string
+            bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+            // On lit ligne à ligne le bufferedReader pour le stocker dans le stringBuffer
+            line = null;
+            sb = new StringBuilder();
+            while (null != (line = bufferedReader.readLine())) {
+                sb.append(line).append('\n');
+            }
+            if (sb.length() > 0) sb.deleteCharAt(sb.length() - 1);
+            response = sb.toString();
+            
+            CacheFileUtils.writeDebugFile("http_" + cmd.id + "_2.html", response);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            cmd.error = ErrorCode.NETWORK_ERROR;
+            return;
+        }
+        ArrayList<Tome> tomes = XMLParser.parseMissingTomesMobileXML(response);
+        if (tomes == null) {
+            cmd.error = ErrorCode.SYNCMISSING_ERROR;
+            return;
+        }
+        Global.getAdaptor().checkMissingTomes(cmd.handler, tomes);
+    }
+
+    /*
+     * private static void syncMissing(Command cmd, String uid) {
+     * Log.e(Global.getLogTag(ServerConnector.class), "[" + cmd.id
+     * + "] EXEC SYNC MISSING uid=" + uid);
+     * Resources res = Global.getResources();
+     * StringBuilder sb = new StringBuilder();
+     * sb.append(res.getString(R.string.MS_ROOT));
+     * sb.append(res.getString(R.string.MS_MISSING, uid));
+     * HttpGet httpGet = null;
+     * try {
+     * URI uri = new URI(sb.toString());
+     * httpGet = new HttpGet(uri);
+     * 
+     * // Ajout de headers
+     * httpGet.setHeader("Accept",
+     * "text/html,application/xhtml+xml,application/xml");
+     * httpGet.setHeader("Accept-Charset", "ISO-8859-1,utf-8");
+     * }
+     * catch (Exception e) {
+     * }
+     * 
+     * String response = getResponse(cmd, httpGet, Charset.forName("UTF-8"));
+     * if (cmd.error != ErrorCode.NONE) return;
+     * 
+     * try {
+     * int cIndex = response.indexOf("<table class=\"collection\"");
+     * // Empty collection
+     * if (cIndex < 0) return;
+     * response = response.substring(cIndex);
+     * response = response.substring(0, response.indexOf("</table>") + 8);
+     * 
+     * ArrayList<Tome> tomes = XMLParser.parseMissingTomesXML(response);
+     * if (tomes == null) {
+     * cmd.error = ErrorCode.SYNCMISSING_ERROR;
+     * return;
+     * }
+     * Global.getAdaptor().checkMissingTomes(cmd.handler, tomes);
+     * }
+     * catch (Exception e) {
+     * e.printStackTrace();
+     * cmd.error = ErrorCode.SYNCMISSING_ERROR;
+     * return;
+     * }
+     * }
+     */
 
     public static void syncEdition(Handler handler, String eid, int sid) {
         Log.d(Global.getLogTag(ServerConnector.class), "PUSH SYNC EDITION uid="
@@ -532,8 +711,12 @@ public class ServerConnector {
             + tome.getIconUrl());
         Resources res = Global.getResources();
         StringBuilder sb = new StringBuilder();
-        if (!tome.getIconUrl().startsWith("http://"))
-            sb.append(res.getString(R.string.MS_ROOT));
+        if (!tome.getIconUrl().startsWith("http://")) {
+//            if(tome.isMissingTome)
+//                sb.append(res.getString(R.string.MS_ROOT_MOBILE)).append('/');
+//            else 
+                sb.append(res.getString(R.string.MS_ROOT));
+        }
         sb.append(tome.getIconUrl());
         HttpGet httpGet = null;
         try {
@@ -597,5 +780,57 @@ public class ServerConnector {
             cmd.error = ErrorCode.GETICON_ERROR;
         }
         return;
+    }
+
+    public static void getMissingTomeIcon(Handler handler, Tome tome) {
+        Log.d(Global.getLogTag(ServerConnector.class), "PUSH GET MISSING ICON");
+        getInstance().pushCommand(WSEnum.GET_MISSINGTOMEICON, handler, tome);
+    }
+
+    private static void getMissingTomeIcon(Command cmd, Tome tome) {
+        Log.e(Global.getLogTag(ServerConnector.class), "[" + cmd.id
+            + "] EXEC GET ICON tid=" + tome.getId() + " turl="
+            + tome.getIconUrl());
+        if(tome.getIcon() != null) return;
+        if(tome.getIconUrl()!=null) {
+            ServerConnector.getTomeIcon(cmd.handler, tome);
+        }
+        else {
+            // get tome page and get icon url
+            Resources res = Global.getResources();
+            StringBuilder sb = new StringBuilder();
+            if (!tome.getTomePageUrl().startsWith("http://"))
+                sb.append(res.getString(R.string.MS_ROOT_MOBILE)).append('/');
+            sb.append(tome.getTomePageUrl());
+            HttpGet httpGet = null;
+            try {
+                URI uri = new URI(sb.toString());
+                httpGet = new HttpGet(uri);
+
+                // Ajout de headers
+                httpGet.setHeader("Accept", "text/html,application/xhtml+xml,application/xml");
+                httpGet.setHeader("Accept-Charset", "ISO-8859-1,utf-8");
+            }
+            catch (Exception e) {
+            }
+
+            String response = getResponse(cmd, httpGet, Charset.forName("UTF-8"));
+            if (cmd.error != ErrorCode.NONE) return;
+            
+            try {
+                response = response.substring(response.indexOf("<div id=\"image_serie\""));
+                response = response.substring(0, response.indexOf("</div>") + 6);
+                Document doc = Jsoup.parse(response);
+                Element node = doc.getElementsByTag("img").first();
+                tome.setIconUrl(new StringBuilder().append('/').append(node.attr("src")).toString());
+                Global.getAdaptor().insertTome(cmd.handler, tome);
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+                cmd.error = ErrorCode.GETMISSINGTOMEICON_ERROR;
+                return;
+            }
+            
+        }
     }
 }

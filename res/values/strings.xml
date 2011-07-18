@@ -3,12 +3,15 @@
 	<string name="APPLICATION_NAME">Manga Sanctuary</string>
 
     <string name="MS_ROOT">http://www.manga-sanctuary.com</string>
+    <string name="MS_ROOT_MOBILE">http://www.manga-sanctuary.com/mobile</string>
     
     <string name="MS_LOGIN">/forum/ucp.php?mode=login</string>
     <string name="MS_LOGIN_AUTOLOGIN">autologin</string>
     <string name="MS_LOGIN_AUTOLOGIN_VALUE">on</string>
     <string name="MS_LOGIN_LOGIN">login</string>
     <string name="MS_LOGIN_LOGIN_VALUE">se connecter</string>
+    <string name="MS_LOGIN_CONNEXION">connexion</string>
+    <string name="MS_LOGIN_CONNEXION_VALUE">1</string>
     <string name="MS_LOGIN_PASSWORD">password</string>
     <string name="MS_LOGIN_USERNAME">username</string>
     <string name="MS_LOGIN_REDIRECT">redirect</string>
@@ -19,8 +22,10 @@
 
     <!-- string name="MS_COLLECTION">/collection/include/excel.php?id=%1$s&amp;page=liste&amp;filtre_support=livres&amp;type_collec=ms&amp;type_liste=</string-->
     <string name="MS_COLLECTION">/collection.php?id=%1$s&amp;page=liste&amp;filtre_support=livres&amp;type_collec=ms</string>
-    <string name="MS_MISSING">/collection.php?id=%1$s&amp;page=liste_manquants&amp;filtre_support=livres&amp;type_collec=ms</string>
     <string name="MS_EDITION">/collection.php?id=%1$s&amp;page=liste_volumes&amp;id_edition=%2$s&amp;type_collec=</string>
+    <string name="MS_MISSING">/collection.php?id=%1$s&amp;page=liste_volumes&amp;id_edition=%2$s&amp;type_collec=</string>
+    <string name="MS_MISSING_CONNEXION">/index.php</string>
+    <string name="MS_MISSING_COLLECTION">/manquants.php</string>
     
     <string name="Error_Alert_Title">Erreur</string>
     <string name="Error_Alert_OK_Btn">OK</string>
@@ -46,5 +51,6 @@
     
     <string name="Tome_Title_Pattern">Tome #%1$02d</string>
     <string name="Menu_Refresh">Rafraîchir</string>
+    <string name="Menu_ShoppingList">Volumes manquants</string>
     <string name="Menu_Quit">Quitter</string>
 </resources>

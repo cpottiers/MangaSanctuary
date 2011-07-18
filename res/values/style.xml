@@ -6,7 +6,7 @@
 		<item name="android:textStyle">bold</item>
 	</style>
 	<style name="SerieItemFont" parent="@android:style/TextAppearance.Medium">
-		<item name="android:textColor">@color/serieItemText</item>
+		<item name="android:textColor">@color/uptodateItemText</item>
 		<item name="android:typeface">normal</item>
 		<item name="android:textStyle">normal</item>
 	</style>
