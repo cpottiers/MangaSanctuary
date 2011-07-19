@@ -107,7 +107,7 @@ public class MyDbAdaptor {
                 tome.setId(cursor.getInt(cursor.getColumnIndex(MySQLiteOpenHelper.COL_TOME_ID)));
                 tome.setNumber(cursor.getInt(cursor.getColumnIndex(MySQLiteOpenHelper.COL_TOME_NUMBER)));
                 tome.setEditionId(cursor.getInt(cursor.getColumnIndex(MySQLiteOpenHelper.COL_TOME_EDITION_ID)));
-                tome.setIconUrl(cursor.getString(cursor.getColumnIndex(MySQLiteOpenHelper.COL_TOME_ICON_URL)));
+                tome.setIconUrl(cursor.getString(cursor.getColumnIndex(MySQLiteOpenHelper.COL_TOME_ICONURL)));
                 tome.setSerieId(sid);
                 ServerConnector.getTomeIcon(handler, tome);
                 cursor.moveToNext();
@@ -169,7 +169,8 @@ public class MyDbAdaptor {
             values.put(MySQLiteOpenHelper.COL_TOME_SERIE_ID, tome.getSerieId());
             values.put(MySQLiteOpenHelper.COL_TOME_EDITION_ID, tome.getEditionId());
             values.put(MySQLiteOpenHelper.COL_TOME_NUMBER, tome.getNumber());
-            values.put(MySQLiteOpenHelper.COL_TOME_ICON_URL, tome.getIconUrl());
+            values.put(MySQLiteOpenHelper.COL_TOME_PAGEURL, tome.getTomePageUrl());
+            values.put(MySQLiteOpenHelper.COL_TOME_ICONURL, tome.getIconUrl());
             if (tome.getIconUrl() == null)
                 values.putNull(MySQLiteOpenHelper.COL_TOME_ICON);
         }
@@ -229,7 +230,7 @@ public class MyDbAdaptor {
             tome.setSerieId(cursor.getInt(columnIndex));
         if ((columnIndex = cursor.getColumnIndex(MySQLiteOpenHelper.COL_TOME_NUMBER)) >= 0)
             tome.setNumber(cursor.getInt(columnIndex));
-        if ((columnIndex = cursor.getColumnIndex(MySQLiteOpenHelper.COL_TOME_ICON_URL)) >= 0)
+        if ((columnIndex = cursor.getColumnIndex(MySQLiteOpenHelper.COL_TOME_ICONURL)) >= 0)
             tome.setIconUrl(cursor.getString(columnIndex));
         if ((columnIndex = cursor.getColumnIndex(MySQLiteOpenHelper.COL_TOME_ICON)) >= 0)
             tome.setIcon(cursor.getBlob(columnIndex));

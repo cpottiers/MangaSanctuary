@@ -39,6 +39,10 @@
     <string name="First_Sync_Alert">\tAttention, la première synchronisation peut prendre plusieurs minutes selon la taille de votre collection et votre type de connection.\n\tExemple : 10 minutes pour une collection de 650 mangas en Wifi (8Mo de stockés).\n\n\tUne fois cette synchronisation faite, les suivantes seront très rapides.</string>
     
     <string name="Collection_Empty">Collection vide</string>
+    <string name="Missing_Empty">Votre collection est à jour</string>
+    
+    <string name="Collection_Title">Votre collection :</string>
+    <string name="Shopping_Title">Vos volumes manquants :</string>
     
     <string name="Error_Alert_Server">Impossible de joindre le serveur, vérifiez votre connection réseau.</string>
     <string name="Error_Alert_IdUnknown">Impossible de se connecter, vérifiez vos paramètres d\'identification.</string>
@@ -52,5 +56,6 @@
     <string name="Tome_Title_Pattern">Tome #%1$02d</string>
     <string name="Menu_Refresh">Rafraîchir</string>
     <string name="Menu_ShoppingList">Volumes manquants</string>
+    <string name="Menu_List">Collection</string>
     <string name="Menu_Quit">Quitter</string>
 </resources>

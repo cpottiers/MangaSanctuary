@@ -31,8 +31,9 @@ public class MySQLiteOpenHelper extends SQLiteOpenHelper {
     public static final String    COL_TOME_NUMBER                        = "number";
     public static final String    COL_TOME_SERIE_ID                      = "serie_id";
     public static final String    COL_TOME_EDITION_ID                    = "edition_id";
+    public static final String    COL_TOME_PAGEURL                       = "page_url";
     public static final String    COL_TOME_ICON                          = "icone";
-    public static final String    COL_TOME_ICON_URL                      = "icone_url";
+    public static final String    COL_TOME_ICONURL                      = "icone_url";
 
     private static final String   CREATE_TOME_TABLE                      = "CREATE TABLE "
                                                                              + TABLE_TOMES
@@ -47,7 +48,9 @@ public class MySQLiteOpenHelper extends SQLiteOpenHelper {
                                                                              + " INTEGER NOT NULL, "
                                                                              + COL_TOME_ICON
                                                                              + " BLOB, "
-                                                                             + COL_TOME_ICON_URL
+                                                                             + COL_TOME_ICONURL
+                                                                             + " TEXT, "
+                                                                             + COL_TOME_PAGEURL
                                                                              + " TEXT, "
                                                                              + "FOREIGN KEY("
                                                                              + COL_TOME_SERIE_ID
@@ -188,7 +191,7 @@ public class MySQLiteOpenHelper extends SQLiteOpenHelper {
                                                                              + COL_TOME_SERIE_ID
                                                                              + "=?"
                                                                              + " AND "
-                                                                             + COL_TOME_ICON_URL
+                                                                             + COL_TOME_ICONURL
                                                                              + " IS NOT NULL"
                                                                              + " AND "
                                                                              + COL_TOME_ICON
@@ -206,7 +209,12 @@ public class MySQLiteOpenHelper extends SQLiteOpenHelper {
                                                                              + COL_MISSING_ICON
                                                                              + " IS NULL";
 
-    private static final String[] ALTER_FROM_RELEASE1_TO_RELEASE2        = new String[] { CREATE_MISSING_TABLE };
+    private static final String   ALTER_TOME_FROM_RELEASE1_TO_RELEASE2   = "ALTER TABLE "
+                                                                             + TABLE_TOMES
+                                                                             + " ADD COLUMN "
+                                                                             + COL_TOME_PAGEURL
+                                                                             + " TEXT";
+    private static final String[] ALTER_FROM_RELEASE1_TO_RELEASE2        = new String[] { ALTER_TOME_FROM_RELEASE1_TO_RELEASE2, CREATE_MISSING_TABLE };
 
     public MySQLiteOpenHelper(Context context) {
         super(context, DATABASE_NAME, null, RELEASE2);

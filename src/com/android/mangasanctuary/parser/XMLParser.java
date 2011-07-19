@@ -137,7 +137,7 @@ public class XMLParser {
         ArrayList<Tome> tomes = new ArrayList<Tome>();
         Tome tome;
         Element child;
-        String sId, sNumber, sUrl;
+        String sId, sNumber, sUrl, sPageUrl;
         int iId, iNumber;
         try {
             Document doc = Jsoup.parse(result);
@@ -148,11 +148,12 @@ public class XMLParser {
                 Log.d(Global.getLogTag(XMLParser.class), "span : \n"
                     + node.outerHtml());
                 tome = new Tome();
-                sId = sNumber = sUrl = null;
+                sId = sNumber = sUrl = sPageUrl = null;
                 iId = 0;
                 child = node.getElementsByTag("input").first();
                 if (child.hasAttr("value")) sId = child.attr("value");
                 child = node.getElementsByTag("a").first();
+                if (child.hasAttr("href")) sPageUrl = child.attr("href");
                 sNumber = child.ownText();
                 sNumber = sNumber.substring(sNumber.indexOf('#') + 1).trim();
 
@@ -178,6 +179,7 @@ public class XMLParser {
                     e.printStackTrace();
                 }
                 tome.setIconUrl(sUrl);
+                tome.setTomePageUrl(sPageUrl);
                 Log.i(Global.getLogTag(XMLParser.class), "  --> " + iId + ","
                     + sNumber + "," + sUrl);
 

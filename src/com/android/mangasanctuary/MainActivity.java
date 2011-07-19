@@ -47,19 +47,21 @@ import com.eightmotions.apis.tools.strings.StringUtils;
 
 public class MainActivity extends ListActivity implements HttpListener, OnClickListener {
 
-    private final static int   INTENT_CODE      = 200;
-    private final static int   SELECT_USER      = 0;
+    private final static int          INTENT_CODE        = 200;
+    private final static int          SELECT_USER        = 0;
 
-    private final static int   MENU_FIRST       = 0;
-    private final static int   MENU_REFRESH     = MENU_FIRST + 100;
-    private final static int   MENU_SHOPPING    = MENU_FIRST + 150;
-    private final static int   MENU_QUIT        = MENU_FIRST + 200;
+    private final static int          MENU_FIRST         = 0;
+    private final static int          MENU_REFRESH       = MENU_FIRST + 100;
+    private final static int          MENU_SHOPPING      = MENU_FIRST + 150;
+    private final static int          MENU_QUIT          = MENU_FIRST + 200;
 
-    SeriesAdapter              cursorAdapter    = null;
-    Cursor                     serieCursor      = null;
-    ProgressDialog             waitingDialog    = null;
+    CursorAdapter                     cursorAdapter      = null;
+    Cursor                            serieCursor        = null;
+    ProgressDialog                    waitingDialog      = null;
+    boolean                           isMissingList      = false;
 
-    Hashtable<Integer, Cursor> editionCursorMap = new Hashtable<Integer, Cursor>();
+    Hashtable<Integer, Cursor>        listCursorMap      = new Hashtable<Integer, Cursor>();
+    Hashtable<Integer, Cursor>        shoppingCursorMap  = new Hashtable<Integer, Cursor>();
 
     private static class SeriesViewHolder {
         public TextView        separator;
@@ -99,11 +101,13 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
 
         HashMap<String, Integer>      alphaIndexer         = new HashMap<String, Integer>();
         String[]                      sections;
+        boolean                       isMissing            = false;
 
         //        AlphabetIndexer               alphaIndexer;
 
-        public SeriesAdapter(Context context, Cursor cursor) {
+        public SeriesAdapter(Context context, Cursor cursor, boolean isMissing) {
             super(context, cursor);
+            this.isMissing = isMissing;
             // here is the tricky stuff
             // in this hashmap we will store here the positions for
             // the sections
@@ -113,9 +117,11 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
         public void initAdapter(Cursor cursor) {
             Log.w(Global.getLogTag(MainActivity.class), "SeriesAdapter initAdapter");
             mCellStates = cursor == null ? null : new int[cursor.getCount()];
+            if (!isMissing) {
+                mColumnCountIndex = cursor.getColumnIndex("_count");
+            }
             mColumnNameIndex = cursor.getColumnIndex(MySQLiteOpenHelper.COL_SERIES_NAME);
             mColumnIdIndex = cursor.getColumnIndex("_id");
-            mColumnCountIndex = cursor.getColumnIndex("_count");
 
             alphaIndexer.clear();
             String section;
@@ -134,8 +140,6 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
             sections = new String[array.size()];
             for (int i = sections.length; --i >= 0;)
                 sections[i] = array.get(i);
-
-            //            alphaIndexer = new AlphabetIndexer(cursor, mColumnNameIndex, " ABCDEFGHIJKLMNOPQRSTUVWXYZ");
         }
 
         @Override
@@ -215,18 +219,34 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
             holder.title.setText(holder.titleBuffer.data, 0, holder.titleBuffer.sizeCopied);
             holder.title.setOnClickListener(MainActivity.this);
 
-            int count = cursor.getInt(mColumnCountIndex);
+            int count = 0;
+
+            if (!isMissing) count = cursor.getInt(mColumnCountIndex);
             if (count == 0)
                 holder.title.setTextColor(Global.getResources().getColor(R.color.uptodateItemText));
             else
                 holder.title.setTextColor(Global.getResources().getColor(R.color.missingItemText));
 
             int serie_id = cursor.getInt(mColumnIdIndex);
-            Cursor c = Global.getAdaptor().getAllTomesFromSerieId(serie_id);
+            Cursor c = null;
+
+            if (isMissing)
+                c = Global.getAdaptor().getAllMissingTomesFromSerieId(serie_id);
+            else
+                c = Global.getAdaptor().getAllTomesFromSerieId(serie_id);
             startManagingCursor(c);
-            holder.tomes.setAdapter(new TomesAdapter(context, c));
+            CursorAdapter adaptor;
+            if (isMissing) {
+                adaptor = new MissingTomesAdapter(context, c);
+                holder.tomes.setAdapter(adaptor);
+                shoppingCursorMap.put(serie_id, c);
+            }
+            else {
+                adaptor = new TomesAdapter(context, c);
+                holder.tomes.setAdapter(adaptor);
+                listCursorMap.put(serie_id, c);
+            }
             holder.tomes.setSelection(holder.tomes.getCount() - 1);
-            editionCursorMap.put(serie_id, c);
         }
 
         @Override
@@ -360,6 +380,62 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
 
     }
 
+    private class MissingTomesAdapter extends SimpleCursorAdapter {
+
+        private int mColumnNameIndex, mColumnIconIndex;
+
+        public MissingTomesAdapter(Context context, Cursor cursor) {
+            super(context, R.layout.tome_item_layout, cursor, new String[] { MySQLiteOpenHelper.COL_MISSING_ICON, MySQLiteOpenHelper.COL_MISSING_NUMBER }, new int[] { R.id.tome_icon, R.id.tome_name });
+            initAdapter(cursor);
+        }
+
+        public void initAdapter(Cursor cursor) {
+            mColumnNameIndex = cursor.getColumnIndex(MySQLiteOpenHelper.COL_MISSING_NUMBER);
+            mColumnIconIndex = cursor.getColumnIndex(MySQLiteOpenHelper.COL_MISSING_ICON);
+        }
+
+        @Override
+        public void changeCursor(Cursor cursor) {
+            super.changeCursor(cursor);
+            initAdapter(cursor);
+        }
+
+        @Override
+        public void notifyDataSetChanged() {
+            super.notifyDataSetChanged();
+            initAdapter(getCursor());
+        }
+
+        @Override
+        public void bindView(View view, Context context, Cursor cursor) {
+            final TomesViewHolder holder = (TomesViewHolder) view.getTag();
+            holder.title.setText(context.getResources().getString(R.string.Tome_Title_Pattern, cursor.getInt(mColumnNameIndex)));
+            byte[] datas = cursor.getBlob(mColumnIconIndex);
+            if (datas == null)
+                holder.icon.setImageResource(R.drawable.no_icon);
+            else {
+                Bitmap icon = BitmapFactory.decodeByteArray(datas, 0, datas.length);
+                holder.icon.setImageBitmap(icon);
+            }
+        }
+
+        @Override
+        public View newView(Context context, Cursor cursor, ViewGroup parent) {
+            View v = LayoutInflater.from(context).inflate(R.layout.tome_item_layout, parent, false);
+
+            // The following code allows us to keep a reference on the child
+            // views of the item. It prevents us from calling findViewById at
+            // each getView/bindView and boosts the rendering code.
+            TomesViewHolder holder = new TomesViewHolder();
+            holder.icon = (ImageView) v.findViewById(R.id.tome_icon);
+            holder.title = (TextView) v.findViewById(R.id.tome_name);
+
+            v.setTag(holder);
+            return v;
+        }
+
+    }
+
     public Handler handler = new Handler() {
                                @Override
                                public void handleMessage(Message msg) {
@@ -423,6 +499,7 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
                                                try {
                                                    if (serieCursor != null)
                                                        serieCursor.requery();
+                                                   cursorAdapter.notifyDataSetChanged();
                                                }
                                                catch (Exception e) {
                                                    e.printStackTrace();
@@ -449,10 +526,20 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
                                                // refresh EDITION gallery
                                                int eid = b.getInt(ServerConnector.EDITION_ID, -1);
                                                if (eid >= 0) {
-                                                   Cursor cursor = editionCursorMap.get(eid);
+                                                   Cursor cursor = listCursorMap.get(eid);
                                                    try {
                                                        if (cursor != null)
                                                            cursor.requery();
+                                                       cursorAdapter.notifyDataSetChanged();
+                                                   }
+                                                   catch (Exception e) {
+                                                       e.printStackTrace();
+                                                   }
+                                                   cursor = shoppingCursorMap.get(eid);
+                                                   try {
+                                                       if (cursor != null)
+                                                           cursor.requery();
+                                                       cursorAdapter.notifyDataSetChanged();
                                                    }
                                                    catch (Exception e) {
                                                        e.printStackTrace();
@@ -477,7 +564,7 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
         Global.getAdaptor().openToWrite();
         serieCursor = Global.getAdaptor().getAllSeries();
         startManagingCursor(serieCursor);
-        cursorAdapter = new SeriesAdapter(this, serieCursor);
+        cursorAdapter = new SeriesAdapter(this, serieCursor, false);
         setListAdapter(cursorAdapter);
 
         // Check user known
@@ -508,9 +595,12 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
         super.onDestroy();
         stopManagingCursor(serieCursor);
         serieCursor = null;
-        Enumeration<Integer> e = editionCursorMap.keys();
+        Enumeration<Integer> e = listCursorMap.keys();
         while (e.hasMoreElements())
-            stopManagingCursor(editionCursorMap.get(e.nextElement()));
+            stopManagingCursor(listCursorMap.get(e.nextElement()));
+        e = shoppingCursorMap.keys();
+        while (e.hasMoreElements())
+            stopManagingCursor(shoppingCursorMap.get(e.nextElement()));
         Global.getAdaptor().close();
         ServerConnector.unregisterHttpOverListener(this);
     }
@@ -577,11 +667,25 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
         MenuItem item = menu.add(Menu.NONE, MENU_REFRESH, MENU_REFRESH, getResources().getString(R.string.Menu_Refresh));
         item.setIcon(R.drawable.ic_menu_refresh);
         item = menu.add(Menu.NONE, MENU_SHOPPING, MENU_SHOPPING, getResources().getString(R.string.Menu_ShoppingList));
-        item.setIcon(R.drawable.ic_menu_agenda);
+        item.setIcon(R.drawable.ic_menu_shopping);
         item = menu.add(Menu.NONE, MENU_QUIT, MENU_QUIT, getResources().getString(R.string.Menu_Quit));
         item.setIcon(R.drawable.ic_menu_close_clear_cancel);
 
         return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        MenuItem item = menu.findItem(MENU_SHOPPING);
+        if (!isMissingList) {
+            item.setIcon(R.drawable.ic_menu_shopping);
+            item.setTitle(R.string.Menu_ShoppingList);
+        }
+        else {
+            item.setIcon(R.drawable.ic_menu_list);
+            item.setTitle(R.string.Menu_List);
+        }
+        return super.onPrepareOptionsMenu(menu);
     }
 
     @Override
@@ -594,8 +698,32 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
                 ServerConnector.syncSeries(handler);
                 break;
             case MENU_SHOPPING:
-                Intent intent = new Intent(this, ShoppingActivity.class);
-                startActivity(intent);
+                //                Intent intent = new Intent(this, ShoppingActivity.class);
+                //                startActivity(intent);
+                isMissingList = !isMissingList;
+
+                stopManagingCursor(serieCursor);
+                if (isMissingList)
+                    serieCursor = Global.getAdaptor().getAllMissingSeries();
+                else
+                    serieCursor = Global.getAdaptor().getAllSeries();
+                startManagingCursor(serieCursor);
+
+                cursorAdapter = new SeriesAdapter(this, serieCursor, isMissingList);
+                setListAdapter(cursorAdapter);
+                
+                TextView tv = (TextView) findViewById(R.id.caption);
+                if (isMissingList)
+                    tv.setText(R.string.Missing_Empty);
+                else
+                    tv.setText(R.string.Collection_Empty);
+
+                tv = (TextView) findViewById(R.id.title);
+                if (isMissingList)
+                    tv.setText(R.string.Shopping_Title);
+                else
+                    tv.setText(R.string.Collection_Title);
+
                 break;
             case MENU_QUIT:
                 finish();

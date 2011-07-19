@@ -15,7 +15,6 @@
 		<activity android:name=".SelectUserActivity"
 			android:configChanges="keyboardHidden|orientation" />
 		<activity android:name=".MainActivity" android:configChanges="keyboardHidden|orientation" />
-		<activity android:name=".ShoppingActivity" android:configChanges="keyboardHidden|orientation" />
 	</application>
 	<uses-sdk android:minSdkVersion="9" android:targetSdkVersion="9" />
 </manifest>
