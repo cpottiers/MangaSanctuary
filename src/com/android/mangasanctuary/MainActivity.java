@@ -244,6 +244,8 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
                 holder.tomes.setAdapter(adaptor);
                 listCursorMap.put(serie_id, c);
             }
+            
+            if(!isMissing)
             holder.tomes.setSelection(holder.tomes.getCount() - 1);
         }
 
