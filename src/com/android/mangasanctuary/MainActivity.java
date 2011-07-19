@@ -222,10 +222,8 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
             int count = 0;
 
             if (!isMissing) count = cursor.getInt(mColumnCountIndex);
-            if (count == 0)
-                holder.title.setTextColor(Global.getResources().getColor(R.color.uptodateItemText));
-            else
-                holder.title.setTextColor(Global.getResources().getColor(R.color.missingItemText));
+            if (count > 0)
+                holder.title.setText(new StringBuilder().append("* ").append(holder.title.getText()).toString());
 
             int serie_id = cursor.getInt(mColumnIdIndex);
             Cursor c = null;
