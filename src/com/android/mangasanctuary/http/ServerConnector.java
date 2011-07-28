@@ -822,7 +822,12 @@ public class ServerConnector {
                 response = response.substring(0, response.indexOf("</div>") + 6);
                 Document doc = Jsoup.parse(response);
                 Element node = doc.getElementsByTag("img").first();
-                tome.setIconUrl(new StringBuilder().append('/').append(node.attr("src")).toString());
+                String sUrl = node.attr("src");
+                if(sUrl!=null) {
+                    if(sUrl.indexOf('/') != 0 && !sUrl.startsWith("http"))
+                        sUrl = new StringBuilder().append('/').append(sUrl).toString();
+                    tome.setIconUrl(sUrl);
+                }
                 Global.getAdaptor().insertTome(cmd.handler, tome);
             }
             catch (Exception e) {

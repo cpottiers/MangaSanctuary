@@ -161,6 +161,8 @@ public class MySQLiteOpenHelper extends SQLiteOpenHelper {
                                                                              + " AS _id, "
                                                                              + COL_TOME_NUMBER
                                                                              + ", "
+                                                                             + COL_TOME_PAGEURL
+                                                                             + ", "
                                                                              + COL_TOME_ICON
                                                                              + " FROM "
                                                                              + TABLE_TOMES
@@ -174,6 +176,8 @@ public class MySQLiteOpenHelper extends SQLiteOpenHelper {
                                                                              + COL_MISSING_ID
                                                                              + " AS _id, "
                                                                              + COL_MISSING_NUMBER
+                                                                             + ", "
+                                                                             + COL_MISSING_PAGEURL
                                                                              + ", "
                                                                              + COL_MISSING_ICON
                                                                              + " FROM "

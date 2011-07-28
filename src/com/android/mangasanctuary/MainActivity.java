@@ -11,6 +11,7 @@ import java.util.concurrent.TimeUnit;
 import android.app.AlertDialog;
 import android.app.ListActivity;
 import android.app.ProgressDialog;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -18,15 +19,19 @@ import android.database.CharArrayBuffer;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.SubMenu;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.CursorAdapter;
 import android.widget.Gallery;
 import android.widget.ImageView;
@@ -47,21 +52,21 @@ import com.eightmotions.apis.tools.strings.StringUtils;
 
 public class MainActivity extends ListActivity implements HttpListener, OnClickListener {
 
-    private final static int          INTENT_CODE        = 200;
-    private final static int          SELECT_USER        = 0;
+    private final static int   INTENT_CODE       = 200;
+    private final static int   SELECT_USER       = 0;
 
-    private final static int          MENU_FIRST         = 0;
-    private final static int          MENU_REFRESH       = MENU_FIRST + 100;
-    private final static int          MENU_SHOPPING      = MENU_FIRST + 150;
-    private final static int          MENU_QUIT          = MENU_FIRST + 200;
+    private final static int   MENU_FIRST        = 0;
+    private final static int   MENU_REFRESH      = MENU_FIRST + 100;
+    private final static int   MENU_SHOPPING     = MENU_FIRST + 150;
+    private final static int   MENU_QUIT         = MENU_FIRST + 200;
 
-    CursorAdapter                     cursorAdapter      = null;
-    Cursor                            serieCursor        = null;
-    ProgressDialog                    waitingDialog      = null;
-    boolean                           isMissingList      = false;
+    CursorAdapter              cursorAdapter     = null;
+    Cursor                     serieCursor       = null;
+    ProgressDialog             waitingDialog     = null;
+    boolean                    isMissingList     = false;
 
-    Hashtable<Integer, Cursor>        listCursorMap      = new Hashtable<Integer, Cursor>();
-    Hashtable<Integer, Cursor>        shoppingCursorMap  = new Hashtable<Integer, Cursor>();
+    Hashtable<Integer, Cursor> listCursorMap     = new Hashtable<Integer, Cursor>();
+    Hashtable<Integer, Cursor> shoppingCursorMap = new Hashtable<Integer, Cursor>();
 
     private static class SeriesViewHolder {
         public TextView        separator;
@@ -73,6 +78,7 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
     private static class TomesViewHolder {
         public ImageView icon;
         public TextView  title;
+        public String    url;
     }
 
     private class SeriesAdapter extends CursorAdapter implements SectionIndexer {
@@ -244,9 +250,23 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
                 holder.tomes.setAdapter(adaptor);
                 listCursorMap.put(serie_id, c);
             }
-            
-            if(!isMissing)
-            holder.tomes.setSelection(holder.tomes.getCount() - 1);
+
+            if (!isMissing)
+                holder.tomes.setSelection(holder.tomes.getCount() - 1);
+
+            holder.tomes.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                @Override
+                public void onItemClick(AdapterView<?> adapterview, View view,
+                        int position, long id) {
+                    final TomesViewHolder holder = (TomesViewHolder) view.getTag();
+                    Log.d(Global.getLogTag(getClass()), "click url="+holder.url);
+                    if (holder != null && holder.url != null) {
+                        Intent i = new Intent(Intent.ACTION_VIEW);
+                        i.setData(Uri.parse(holder.url));
+                        startActivity(i);
+                    }
+                }
+            });
         }
 
         @Override
@@ -323,7 +343,7 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
 
     private class TomesAdapter extends SimpleCursorAdapter {
 
-        private int mColumnNameIndex, mColumnIconIndex;
+        private int mColumnNameIndex, mColumnIconIndex, mColumnUrlIndex;
 
         public TomesAdapter(Context context, Cursor cursor) {
             super(context, R.layout.tome_item_layout, cursor, new String[] { MySQLiteOpenHelper.COL_TOME_ICON, MySQLiteOpenHelper.COL_TOME_NUMBER }, new int[] { R.id.tome_icon, R.id.tome_name });
@@ -334,6 +354,7 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
             Log.w(Global.getLogTag(MainActivity.class), "TomesAdapter initAdapter");
             mColumnNameIndex = cursor.getColumnIndex(MySQLiteOpenHelper.COL_TOME_NUMBER);
             mColumnIconIndex = cursor.getColumnIndex(MySQLiteOpenHelper.COL_TOME_ICON);
+            mColumnUrlIndex = cursor.getColumnIndex(MySQLiteOpenHelper.COL_TOME_PAGEURL);
         }
 
         @Override
@@ -361,6 +382,12 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
                 Bitmap icon = BitmapFactory.decodeByteArray(datas, 0, datas.length);
                 holder.icon.setImageBitmap(icon);
             }
+            String url = cursor.getString(mColumnUrlIndex);
+            Log.d(Global.getLogTag(getClass()), "build item title="+holder.title.getText() +" url="+url);
+            if (url != null && !url.startsWith("http")) {
+                url = new StringBuilder().append(getResources().getString(R.string.MS_ROOT)).append('/').append(url).toString();
+            }
+            holder.url = url;
         }
 
         @Override
@@ -377,12 +404,11 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
             v.setTag(holder);
             return v;
         }
-
     }
 
     private class MissingTomesAdapter extends SimpleCursorAdapter {
 
-        private int mColumnNameIndex, mColumnIconIndex;
+        private int mColumnNameIndex, mColumnIconIndex, mColumnUrlIndex;
 
         public MissingTomesAdapter(Context context, Cursor cursor) {
             super(context, R.layout.tome_item_layout, cursor, new String[] { MySQLiteOpenHelper.COL_MISSING_ICON, MySQLiteOpenHelper.COL_MISSING_NUMBER }, new int[] { R.id.tome_icon, R.id.tome_name });
@@ -392,6 +418,7 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
         public void initAdapter(Cursor cursor) {
             mColumnNameIndex = cursor.getColumnIndex(MySQLiteOpenHelper.COL_MISSING_NUMBER);
             mColumnIconIndex = cursor.getColumnIndex(MySQLiteOpenHelper.COL_MISSING_ICON);
+            mColumnUrlIndex = cursor.getColumnIndex(MySQLiteOpenHelper.COL_MISSING_PAGEURL);
         }
 
         @Override
@@ -417,6 +444,12 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
                 Bitmap icon = BitmapFactory.decodeByteArray(datas, 0, datas.length);
                 holder.icon.setImageBitmap(icon);
             }
+            String url = cursor.getString(mColumnUrlIndex);
+            Log.d(Global.getLogTag(getClass()), "build item title="+holder.title.getText() +" url="+url);
+            if (url != null && !url.startsWith("http")) {
+                url = new StringBuilder().append(getResources().getString(R.string.MS_ROOT_MOBILE)).append('/').append(url).toString();
+            }
+            holder.url = url;
         }
 
         @Override
@@ -698,32 +731,7 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
                 ServerConnector.syncSeries(handler);
                 break;
             case MENU_SHOPPING:
-                //                Intent intent = new Intent(this, ShoppingActivity.class);
-                //                startActivity(intent);
-                isMissingList = !isMissingList;
-
-                stopManagingCursor(serieCursor);
-                if (isMissingList)
-                    serieCursor = Global.getAdaptor().getAllMissingSeries();
-                else
-                    serieCursor = Global.getAdaptor().getAllSeries();
-                startManagingCursor(serieCursor);
-
-                cursorAdapter = new SeriesAdapter(this, serieCursor, isMissingList);
-                setListAdapter(cursorAdapter);
-                
-                TextView tv = (TextView) findViewById(R.id.caption);
-                if (isMissingList)
-                    tv.setText(R.string.Missing_Empty);
-                else
-                    tv.setText(R.string.Collection_Empty);
-
-                tv = (TextView) findViewById(R.id.title);
-                if (isMissingList)
-                    tv.setText(R.string.Shopping_Title);
-                else
-                    tv.setText(R.string.Collection_Title);
-
+                switchStatus();
                 break;
             case MENU_QUIT:
                 finish();
@@ -735,5 +743,43 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
     @Override
     public void onClick(View v) {
         Log.i(Global.getLogTag(MainActivity.class), "Click on v=" + v);
+    }
+    
+    public void switchStatus() {
+        //                Intent intent = new Intent(this, ShoppingActivity.class);
+        //                startActivity(intent);
+        isMissingList = !isMissingList;
+
+        stopManagingCursor(serieCursor);
+        if (isMissingList)
+            serieCursor = Global.getAdaptor().getAllMissingSeries();
+        else
+            serieCursor = Global.getAdaptor().getAllSeries();
+        startManagingCursor(serieCursor);
+
+        cursorAdapter = new SeriesAdapter(this, serieCursor, isMissingList);
+        setListAdapter(cursorAdapter);
+
+        TextView tv = (TextView) findViewById(R.id.caption);
+        if (isMissingList)
+            tv.setText(R.string.Missing_Empty);
+        else
+            tv.setText(R.string.Collection_Empty);
+
+        tv = (TextView) findViewById(R.id.title);
+        if (isMissingList)
+            tv.setText(R.string.Shopping_Title);
+        else
+            tv.setText(R.string.Collection_Title);
+    }
+    
+    @Override
+    public void onBackPressed() {
+        if(isMissingList) {
+            switchStatus();
+            return;
+        }
+            
+        super.onBackPressed();
     }
 }

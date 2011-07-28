@@ -44,7 +44,8 @@ public class Global {
     }
 
     public static MyDbAdaptor getAdaptor() {
-        if (instance == null) return null;
+        if (instance == null) instance = new Global(instance.context);
+        if(instance.adaptor == null) instance.adaptor = new MyDbAdaptor(instance.context);
         return instance.adaptor;
     }
 
