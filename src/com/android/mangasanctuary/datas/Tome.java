@@ -1,6 +1,6 @@
 package com.android.mangasanctuary.datas;
 
-import com.eightmotions.apis.tools.arrays.ArraysUtils;
+import com.cyrilpottiers.androlib.arrays.ArraysUtils;
 
 public class Tome {
     // TABLE VARIABLES

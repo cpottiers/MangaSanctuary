@@ -2,8 +2,6 @@ package com.android.mangasanctuary.datas;
 
 import java.util.Hashtable;
 
-import com.android.mangasanctuary.http.ServerConnector.WSEnum;
-
 public class Serie {
 
     public enum Status {

@@ -6,8 +6,8 @@ import android.content.SharedPreferences.Editor;
 import android.content.res.Resources;
 
 import com.android.mangasanctuary.bd.MyDbAdaptor;
-import com.eightmotions.apis.tools.Log;
-import com.eightmotions.apis.tools.cache.CacheFileUtils;
+import com.cyrilpottiers.androlib.Log;
+import com.cyrilpottiers.androlib.cache.CacheFileUtils;
 
 public class Global {
     private final static String TAG                  = "MangaSanctuary";

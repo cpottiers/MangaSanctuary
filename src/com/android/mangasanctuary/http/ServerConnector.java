@@ -36,9 +36,9 @@ import com.android.mangasanctuary.datas.Global;
 import com.android.mangasanctuary.datas.Serie;
 import com.android.mangasanctuary.datas.Tome;
 import com.android.mangasanctuary.parser.XMLParser;
-import com.eightmotions.apis.tools.Log;
-import com.eightmotions.apis.tools.arrays.ArraysUtils;
-import com.eightmotions.apis.tools.cache.CacheFileUtils;
+import com.cyrilpottiers.androlib.Log;
+import com.cyrilpottiers.androlib.arrays.ArraysUtils;
+import com.cyrilpottiers.androlib.cache.CacheFileUtils;
 
 public class ServerConnector {
     public static final String ERROR      = "error";

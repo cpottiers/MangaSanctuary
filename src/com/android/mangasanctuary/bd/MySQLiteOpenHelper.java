@@ -6,7 +6,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 import com.android.mangasanctuary.datas.Global;
 import com.android.mangasanctuary.datas.Serie;
-import com.eightmotions.apis.tools.Log;
+import com.cyrilpottiers.androlib.Log;
 
 public class MySQLiteOpenHelper extends SQLiteOpenHelper {
     

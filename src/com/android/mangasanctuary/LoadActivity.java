@@ -13,8 +13,8 @@ import android.widget.ImageView;
 import android.widget.ImageView.ScaleType;
 
 import com.android.mangasanctuary.datas.Global;
-import com.eightmotions.apis.tools.Log;
-import com.eightmotions.apis.tools.dialog.SplashScreenDialog;
+import com.cyrilpottiers.androlib.Log;
+import com.cyrilpottiers.androlib.dialog.SplashScreenDialog;
 
 public class LoadActivity extends Activity {
     public final static int    SPLASH_SCREEN_ACTIVITY = 0;

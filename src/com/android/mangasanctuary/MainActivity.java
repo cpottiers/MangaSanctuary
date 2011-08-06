@@ -30,7 +30,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.CursorAdapter;
-import android.widget.EditText;
 import android.widget.Gallery;
 import android.widget.ImageView;
 import android.widget.ListView;
@@ -46,9 +45,9 @@ import com.android.mangasanctuary.datas.Serie;
 import com.android.mangasanctuary.http.HttpListener;
 import com.android.mangasanctuary.http.ServerConnector;
 import com.android.mangasanctuary.http.ServerConnector.ErrorCode;
-import com.eightmotions.apis.tools.Log;
-import com.eightmotions.apis.tools.strings.StringUtils;
-import com.eightmotions.apis.tools.strings.StringUtils.SpanStyle;
+import com.cyrilpottiers.androlib.Log;
+import com.cyrilpottiers.androlib.strings.StringUtils;
+import com.cyrilpottiers.androlib.strings.StringUtils.SpanStyle;
 
 public class MainActivity extends ListActivity implements HttpListener /*
                                                                         * ,
@@ -300,12 +299,13 @@ public class MainActivity extends ListActivity implements HttpListener /*
                     Log.d(Global.getLogTag(getClass()), "click url="
                         + holder.url);
                     if (holder != null && holder.url != null) {
-                        
+
                         AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
                         builder.setMessage(R.string.Open_Url_Alert);
                         builder.setPositiveButton(R.string.Error_Alert_OK_Btn, new DialogInterface.OnClickListener() {
                             @Override
-                            public void onClick(DialogInterface dialog, int which) {
+                            public void onClick(DialogInterface dialog,
+                                    int which) {
                                 Intent i = new Intent(Intent.ACTION_VIEW);
                                 i.setData(Uri.parse(holder.url));
                                 startActivity(i);

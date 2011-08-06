@@ -8,6 +8,6 @@
 			<attribute name="javadoc_location" value="jar:platform:/resource/MangaSancturay/ext-jars/jsoup-1.6.0-javadoc.jar!/"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="src" path="CommonsTools_src"/>
+	<classpathentry kind="src" path="Androlib_src"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

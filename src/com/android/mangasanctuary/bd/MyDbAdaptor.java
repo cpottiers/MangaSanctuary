@@ -14,7 +14,7 @@ import com.android.mangasanctuary.datas.Global;
 import com.android.mangasanctuary.datas.Serie;
 import com.android.mangasanctuary.datas.Tome;
 import com.android.mangasanctuary.http.ServerConnector;
-import com.eightmotions.apis.tools.Log;
+import com.cyrilpottiers.androlib.Log;
 
 public class MyDbAdaptor {
 
