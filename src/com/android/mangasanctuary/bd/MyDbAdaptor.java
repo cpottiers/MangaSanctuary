@@ -57,6 +57,7 @@ public class MyDbAdaptor {
         ContentValues values = new ContentValues();
         values.put(MySQLiteOpenHelper.COL_SERIES_ID, serie.getId());
         values.put(MySQLiteOpenHelper.COL_SERIES_NAME, serie.getName());
+        values.put(MySQLiteOpenHelper.COL_SERIES_STATUS, serie.getStatus().getValue());
 
         // Find row
         Cursor cursor = database.query(MySQLiteOpenHelper.TABLE_SERIES, null, new StringBuilder().append(MySQLiteOpenHelper.COL_SERIES_ID).append("=?").toString(), new String[] { Integer.toString(serie.getId()) }, null, null, null);

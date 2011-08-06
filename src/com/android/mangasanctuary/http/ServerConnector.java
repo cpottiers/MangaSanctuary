@@ -500,7 +500,8 @@ public class ServerConnector {
             ArrayList<Serie> series = XMLParser.parseSeriesXML(response);
 
             for (Serie serie : series) {
-                Global.getAdaptor().insertSerie(cmd.handler, serie);
+                if(!Global.getAdaptor().insertSerie(cmd.handler, serie))
+                    throw new Exception();
             }
         }
         catch (Exception e) {

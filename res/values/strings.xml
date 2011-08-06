@@ -53,9 +53,18 @@
     <string name="Sync_Alert_Series">Synchronisation des séries...</string>
     <string name="Sync_Alert_Tomes">Synchronisation des tomes...</string>
     
+    <string name="Legend_Alert_Title">Légende</string>
+    <string name="Legend_Alert_Serie_suivie">Série suivie</string>
+    <string name="Legend_Alert_Serie_complete">Série complète</string>
+    <string name="Legend_Alert_Serie_non_suivie">Série non suivie</string>
+    <string name="Legend_Alert_Serie_interrompue">Série interrompue</string>
+    
+    <string name="Open_Url_Alert">Vous allez être redirigé vers le site www.mangasanctuary.com</string>
+
     <string name="Tome_Title_Pattern">Tome #%1$02d</string>
     <string name="Menu_Refresh">Rafraîchir</string>
     <string name="Menu_ShoppingList">Volumes manquants</string>
     <string name="Menu_List">Collection</string>
+    <string name="Menu_Legend">Légende</string>
     <string name="Menu_Quit">Quitter</string>
 </resources>

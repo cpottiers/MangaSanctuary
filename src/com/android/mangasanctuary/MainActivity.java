@@ -11,7 +11,6 @@ import java.util.concurrent.TimeUnit;
 import android.app.AlertDialog;
 import android.app.ListActivity;
 import android.app.ProgressDialog;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -23,16 +22,15 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.view.KeyEvent;
+import android.text.Spannable;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.SubMenu;
 import android.view.View;
-import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.CursorAdapter;
+import android.widget.EditText;
 import android.widget.Gallery;
 import android.widget.ImageView;
 import android.widget.ListView;
@@ -44,13 +42,18 @@ import android.widget.Toast;
 
 import com.android.mangasanctuary.bd.MySQLiteOpenHelper;
 import com.android.mangasanctuary.datas.Global;
+import com.android.mangasanctuary.datas.Serie;
 import com.android.mangasanctuary.http.HttpListener;
 import com.android.mangasanctuary.http.ServerConnector;
 import com.android.mangasanctuary.http.ServerConnector.ErrorCode;
 import com.eightmotions.apis.tools.Log;
 import com.eightmotions.apis.tools.strings.StringUtils;
+import com.eightmotions.apis.tools.strings.StringUtils.SpanStyle;
 
-public class MainActivity extends ListActivity implements HttpListener, OnClickListener {
+public class MainActivity extends ListActivity implements HttpListener /*
+                                                                        * ,
+                                                                        * OnClickListener
+                                                                        */{
 
     private final static int   INTENT_CODE       = 200;
     private final static int   SELECT_USER       = 0;
@@ -58,6 +61,7 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
     private final static int   MENU_FIRST        = 0;
     private final static int   MENU_REFRESH      = MENU_FIRST + 100;
     private final static int   MENU_SHOPPING     = MENU_FIRST + 150;
+    private final static int   MENU_LEGEND       = MENU_FIRST + 175;
     private final static int   MENU_QUIT         = MENU_FIRST + 200;
 
     CursorAdapter              cursorAdapter     = null;
@@ -72,6 +76,7 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
         public TextView        separator;
         public TextView        title;
         public Gallery         tomes;
+        public Serie.Status    status;
         public CharArrayBuffer titleBuffer = new CharArrayBuffer(128);
     }
 
@@ -103,7 +108,7 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
         private final CharArrayBuffer mBuffer              = new CharArrayBuffer(128);
         private int[]                 mCellStates;
         private int                   mColumnNameIndex, mColumnIdIndex,
-                mColumnCountIndex;
+                mColumnCountIndex, mColumnStatusIndex;
 
         HashMap<String, Integer>      alphaIndexer         = new HashMap<String, Integer>();
         String[]                      sections;
@@ -128,6 +133,7 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
             }
             mColumnNameIndex = cursor.getColumnIndex(MySQLiteOpenHelper.COL_SERIES_NAME);
             mColumnIdIndex = cursor.getColumnIndex("_id");
+            mColumnStatusIndex = cursor.getColumnIndex(MySQLiteOpenHelper.COL_SERIES_STATUS);
 
             alphaIndexer.clear();
             String section;
@@ -222,14 +228,46 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
                 holder.separator.setVisibility(View.GONE);
             }
 
-            holder.title.setText(holder.titleBuffer.data, 0, holder.titleBuffer.sizeCopied);
-            holder.title.setOnClickListener(MainActivity.this);
+            holder.status = Serie.Status.getValue(cursor.getInt(mColumnStatusIndex));
+
+            StringBuilder sb = new StringBuilder();
+            sb.append(holder.titleBuffer.data, 0, holder.titleBuffer.sizeCopied);
+            //            holder.title.setOnClickListener(MainActivity.this);
 
             int count = 0;
 
-            if (!isMissing) count = cursor.getInt(mColumnCountIndex);
-            if (count > 0)
-                holder.title.setText(new StringBuilder().append("* ").append(holder.title.getText()).toString());
+            if (!isMissing) {
+                count = cursor.getInt(mColumnCountIndex);
+                if (count > 0) sb.insert(0, "* ");
+
+                switch (holder.status) {
+                    case SUIVIE:
+                        sb.insert(0, "[[image=" + R.drawable.flag_blue
+                            + "]].[[//]] ");
+                        break;
+                    case COMPLETE:
+                        sb.insert(0, "[[image=" + R.drawable.flag_green
+                            + "]].[[//]] ");
+                        break;
+                    case NON_SUIVIE:
+                        sb.insert(0, "[[image=" + R.drawable.flag_red
+                            + "]].[[//]] ");
+                        break;
+                    case INTERROMPUE:
+                        sb.insert(0, "[[image=" + R.drawable.flag_orange
+                            + "]].[[//]] ");
+                        break;
+                }
+
+                ArrayList<SpanStyle> spans = new ArrayList<SpanStyle>();
+                holder.title.setText(StringUtils.formatSpan(context, sb.toString(), spans), TextView.BufferType.SPANNABLE);
+                Spannable sText = (Spannable) holder.title.getText();
+                for (SpanStyle style : spans) {
+                    sText.setSpan(style.whats, style.start, style.end, style.flags);
+                }
+            }
+            else
+                holder.title.setText(sb.toString());
 
             int serie_id = cursor.getInt(mColumnIdIndex);
             Cursor c = null;
@@ -259,14 +297,26 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
                 public void onItemClick(AdapterView<?> adapterview, View view,
                         int position, long id) {
                     final TomesViewHolder holder = (TomesViewHolder) view.getTag();
-                    Log.d(Global.getLogTag(getClass()), "click url="+holder.url);
+                    Log.d(Global.getLogTag(getClass()), "click url="
+                        + holder.url);
                     if (holder != null && holder.url != null) {
-                        Intent i = new Intent(Intent.ACTION_VIEW);
-                        i.setData(Uri.parse(holder.url));
-                        startActivity(i);
+                        
+                        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                        builder.setMessage(R.string.Open_Url_Alert);
+                        builder.setPositiveButton(R.string.Error_Alert_OK_Btn, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                Intent i = new Intent(Intent.ACTION_VIEW);
+                                i.setData(Uri.parse(holder.url));
+                                startActivity(i);
+                            }
+                        });
+                        builder.setNegativeButton(R.string.Error_Alert_Cancel_Btn, null);
+                        builder.show();
                     }
                 }
             });
+
         }
 
         @Override
@@ -383,7 +433,8 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
                 holder.icon.setImageBitmap(icon);
             }
             String url = cursor.getString(mColumnUrlIndex);
-            Log.d(Global.getLogTag(getClass()), "build item title="+holder.title.getText() +" url="+url);
+            Log.d(Global.getLogTag(getClass()), "build item title="
+                + holder.title.getText() + " url=" + url);
             if (url != null && !url.startsWith("http")) {
                 url = new StringBuilder().append(getResources().getString(R.string.MS_ROOT)).append('/').append(url).toString();
             }
@@ -445,7 +496,8 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
                 holder.icon.setImageBitmap(icon);
             }
             String url = cursor.getString(mColumnUrlIndex);
-            Log.d(Global.getLogTag(getClass()), "build item title="+holder.title.getText() +" url="+url);
+            Log.d(Global.getLogTag(getClass()), "build item title="
+                + holder.title.getText() + " url=" + url);
             if (url != null && !url.startsWith("http")) {
                 url = new StringBuilder().append(getResources().getString(R.string.MS_ROOT_MOBILE)).append('/').append(url).toString();
             }
@@ -701,9 +753,10 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
         item.setIcon(R.drawable.ic_menu_refresh);
         item = menu.add(Menu.NONE, MENU_SHOPPING, MENU_SHOPPING, getResources().getString(R.string.Menu_ShoppingList));
         item.setIcon(R.drawable.ic_menu_shopping);
+        item = menu.add(Menu.NONE, MENU_LEGEND, MENU_LEGEND, getResources().getString(R.string.Menu_Legend));
+        item.setIcon(R.drawable.ic_menu_info_details);
         item = menu.add(Menu.NONE, MENU_QUIT, MENU_QUIT, getResources().getString(R.string.Menu_Quit));
         item.setIcon(R.drawable.ic_menu_close_clear_cancel);
-
         return super.onCreateOptionsMenu(menu);
     }
 
@@ -718,6 +771,8 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
             item.setIcon(R.drawable.ic_menu_list);
             item.setTitle(R.string.Menu_List);
         }
+        item = menu.findItem(MENU_LEGEND);
+        item.setVisible(!isMissingList);
         return super.onPrepareOptionsMenu(menu);
     }
 
@@ -736,15 +791,27 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
             case MENU_QUIT:
                 finish();
                 break;
+            case MENU_LEGEND:
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle(R.string.Legend_Alert_Title);
+                builder.setView(getLayoutInflater().inflate(R.layout.legend, null));
+                builder.setPositiveButton(getResources().getString(R.string.Error_Alert_OK_Btn), new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                });
+                builder.show();
+                break;
         }
         return super.onOptionsItemSelected(item);
     }
 
-    @Override
-    public void onClick(View v) {
-        Log.i(Global.getLogTag(MainActivity.class), "Click on v=" + v);
-    }
-    
+    //    @Override
+    //    public void onClick(View v) {
+    //        Log.i(Global.getLogTag(MainActivity.class), "Click on v=" + v);
+    //    }
+
     public void switchStatus() {
         //                Intent intent = new Intent(this, ShoppingActivity.class);
         //                startActivity(intent);
@@ -772,14 +839,14 @@ public class MainActivity extends ListActivity implements HttpListener, OnClickL
         else
             tv.setText(R.string.Collection_Title);
     }
-    
+
     @Override
     public void onBackPressed() {
-        if(isMissingList) {
+        if (isMissingList) {
             switchStatus();
             return;
         }
-            
+
         super.onBackPressed();
     }
 }

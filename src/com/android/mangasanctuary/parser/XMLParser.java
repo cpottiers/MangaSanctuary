@@ -12,6 +12,7 @@ import android.net.Uri;
 import com.android.mangasanctuary.R;
 import com.android.mangasanctuary.datas.Global;
 import com.android.mangasanctuary.datas.Serie;
+import com.android.mangasanctuary.datas.Serie.Status;
 import com.android.mangasanctuary.datas.Tome;
 import com.eightmotions.apis.tools.Log;
 
@@ -44,6 +45,20 @@ public class XMLParser {
 
     private static Serie parseSerieXML(Element node) {
         Serie serie = new Serie();
+        String s;
+        // status
+        if(node.hasAttr("name")) {
+            s = node.attr("name");
+            if("blue".equalsIgnoreCase(s))
+                serie.setStatus(Status.SUIVIE);
+            else if("green".equalsIgnoreCase(s))
+                serie.setStatus(Status.COMPLETE);
+            else if("red".equalsIgnoreCase(s))
+                serie.setStatus(Status.NON_SUIVIE);
+            else if("orange".equalsIgnoreCase(s))
+                serie.setStatus(Status.INTERROMPUE);
+        }
+        
         Elements nodeList = node.children();
         int i;
         for (Element tempNode : nodeList) {
