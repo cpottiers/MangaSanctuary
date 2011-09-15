@@ -19,8 +19,7 @@ public class Global {
     private final static String PREF_LASTREFRESHDATE = "REFRESHDATE";
 
     private static Global       instance             = null;
-
-    private Context             context              = null;
+    private static Context      context              = null;
     private Resources           resources            = null;
     private MyDbAdaptor         adaptor              = null;
     private SharedPreferences   pref                 = null;
@@ -28,7 +27,7 @@ public class Global {
     private Global(Context context) {
         Log.initialize(context);
         Log.d(getLogTag(Global.class), "create new Global");
-        this.context = context;
+        Global.context = context;
         this.resources = context.getResources();
         adaptor = new MyDbAdaptor(context);
         pref = context.getSharedPreferences(PREF_NAME, Context.MODE_WORLD_WRITEABLE);
@@ -44,14 +43,14 @@ public class Global {
     }
 
     public static MyDbAdaptor getAdaptor() {
-        if (instance == null) instance = new Global(instance.context);
-        if(instance.adaptor == null) instance.adaptor = new MyDbAdaptor(instance.context);
+        if (instance == null) instance = new Global(context);
+        if (instance.adaptor == null)
+            instance.adaptor = new MyDbAdaptor(context);
         return instance.adaptor;
     }
 
     public static Context getContext() {
-        if (instance == null) return null;
-        return instance.context;
+        return context;
     }
 
     public static Resources getResources() {
@@ -68,7 +67,7 @@ public class Global {
         if (instance == null) return null;
         return instance.pref.getString(PREF_USERNAME, null);
     }
-    
+
     public static String getPassword() {
         if (instance == null) return null;
         return instance.pref.getString(PREF_PASSWORD, null);

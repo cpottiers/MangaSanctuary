@@ -59,7 +59,7 @@
     <string name="Legend_Alert_Serie_non_suivie">Série non suivie</string>
     <string name="Legend_Alert_Serie_interrompue">Série interrompue</string>
     
-    <string name="Open_Url_Alert">Vous allez être redirigé vers le site www.mangasanctuary.com</string>
+    <string name="Open_Url_Alert">Vous allez être redirigé vers le site www.manga-sanctuary.com</string>
 
     <string name="Tome_Title_Pattern">Tome #%1$02d</string>
     <string name="Menu_Refresh">Rafraîchir</string>
