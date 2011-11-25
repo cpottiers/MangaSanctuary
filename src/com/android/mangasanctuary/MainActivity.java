@@ -46,6 +46,7 @@ import com.android.mangasanctuary.http.HttpListener;
 import com.android.mangasanctuary.http.ServerConnector;
 import com.android.mangasanctuary.http.ServerConnector.ErrorCode;
 import com.cyrilpottiers.androlib.Log;
+import com.cyrilpottiers.androlib.cache.CacheFileUtils;
 import com.cyrilpottiers.androlib.strings.StringUtils;
 import com.cyrilpottiers.androlib.strings.StringUtils.SpanStyle;
 
@@ -568,6 +569,7 @@ public class MainActivity extends ListActivity implements HttpListener /*
                                                        break;
                                                    case SYNCSERIES_ERROR:
                                                        Toast.makeText(MainActivity.this, R.string.Error_Alert_Synchro, Toast.LENGTH_LONG).show();
+                                                       CacheFileUtils.appendErrorFile((Throwable)b.getSerializable(ServerConnector.ERROR_TRACE));
                                                        break;
                                                }
                                            }
@@ -587,7 +589,7 @@ public class MainActivity extends ListActivity implements HttpListener /*
                                                    cursorAdapter.notifyDataSetChanged();
                                                }
                                                catch (Exception e) {
-                                                   e.printStackTrace();
+                                                   Log.printStackTrace(Global.getLogTag(MainActivity.class), e);
                                                }
                                            }
                                            // Cancel progressDialog
@@ -605,6 +607,13 @@ public class MainActivity extends ListActivity implements HttpListener /*
                                                    case NETWORK_ERROR:
                                                        Toast.makeText(MainActivity.this, R.string.Error_Alert_Server, Toast.LENGTH_LONG).show();
                                                        break;
+                                                   case SYNCEDITION_ERROR: {
+                                                       Serie serie = Global.getAdaptor().lookupSerieFromId(b.getInt(ServerConnector.SERIE_ID, -1));
+                                                       if (serie != null)
+                                                           Toast.makeText(MainActivity.this, Global.getResources().getString(R.string.Error_Alert_SynchroSerie, serie.getName()), Toast.LENGTH_LONG).show();
+                                                       CacheFileUtils.appendErrorFile((Throwable)b.getSerializable(ServerConnector.ERROR_TRACE));
+                                                       break;
+                                                   }
                                                }
                                            }
                                            else {

@@ -38,7 +38,7 @@ public class XMLParser {
             }
         }
         catch (Exception e) {
-            e.printStackTrace();
+            Log.printStackTrace(Global.getLogTag(XMLParser.class), e);
         }
         return series;
     }
@@ -47,18 +47,18 @@ public class XMLParser {
         Serie serie = new Serie();
         String s;
         // status
-        if(node.hasAttr("name")) {
+        if (node.hasAttr("name")) {
             s = node.attr("name");
-            if("blue".equalsIgnoreCase(s))
+            if ("blue".equalsIgnoreCase(s))
                 serie.setStatus(Status.SUIVIE);
-            else if("green".equalsIgnoreCase(s))
+            else if ("green".equalsIgnoreCase(s))
                 serie.setStatus(Status.COMPLETE);
-            else if("red".equalsIgnoreCase(s))
+            else if ("red".equalsIgnoreCase(s))
                 serie.setStatus(Status.NON_SUIVIE);
-            else if("orange".equalsIgnoreCase(s))
+            else if ("orange".equalsIgnoreCase(s))
                 serie.setStatus(Status.INTERROMPUE);
         }
-        
+
         Elements nodeList = node.children();
         int i;
         for (Element tempNode : nodeList) {
@@ -115,7 +115,7 @@ public class XMLParser {
                                     id_edition = Integer.parseInt(uri.getQueryParameter("id_edition"));
                                 }
                                 catch (Exception e) {
-                                    e.printStackTrace();
+                                    Log.printStackTrace(Global.getLogTag(XMLParser.class), e);
                                 }
                                 break;
                             }
@@ -128,7 +128,7 @@ public class XMLParser {
                             volume_count = Integer.parseInt(attr);
                         }
                         catch (Exception e) {
-                            e.printStackTrace();
+                            Log.printStackTrace(Global.getLogTag(XMLParser.class), e);
                         }
                     }
                 }
@@ -184,14 +184,14 @@ public class XMLParser {
                     tome.setId(iId);
                 }
                 catch (Exception e) {
-                    e.printStackTrace();
+                    Log.printStackTrace(Global.getLogTag(XMLParser.class), e);
                 }
                 try {
                     iNumber = Integer.parseInt(sNumber);
                     tome.setNumber(iNumber);
                 }
                 catch (Exception e) {
-                    e.printStackTrace();
+                    Log.printStackTrace(Global.getLogTag(XMLParser.class), e);
                 }
                 tome.setIconUrl(sUrl);
                 tome.setTomePageUrl(sPageUrl);
@@ -202,7 +202,7 @@ public class XMLParser {
             }
         }
         catch (Exception e) {
-            e.printStackTrace();
+            Log.printStackTrace(Global.getLogTag(XMLParser.class), e);
         }
         return tomes;
     }
@@ -244,13 +244,13 @@ public class XMLParser {
                         tomes.add(tome);
                     }
                     catch (Exception e) {
-                        e.printStackTrace();
+                        Log.printStackTrace(Global.getLogTag(XMLParser.class), e);
                     }
                 }
             }
         }
         catch (Exception e) {
-            e.printStackTrace();
+            Log.printStackTrace(Global.getLogTag(XMLParser.class), e);
             return null;
         }
         return tomes;
@@ -288,7 +288,8 @@ public class XMLParser {
                         tomes.add(tome);
                     }
                     catch (Exception e) {
-                        e.printStackTrace();
+                        Log.e(Global.getLogTag(XMLParser.class), "missing xml zap node="
+                            + node.ownText());
                     }
                 }
                 else {
@@ -299,7 +300,7 @@ public class XMLParser {
             }
         }
         catch (Exception e) {
-            e.printStackTrace();
+            Log.printStackTrace(Global.getLogTag(XMLParser.class), e);
             return null;
         }
         return tomes;

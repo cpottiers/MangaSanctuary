@@ -47,6 +47,8 @@
     <string name="Error_Alert_Server">Impossible de joindre le serveur, vérifiez votre connection réseau.</string>
     <string name="Error_Alert_IdUnknown">Impossible de se connecter, vérifiez vos paramètres d\'identification.</string>
     <string name="Error_Alert_Synchro">échec de la synchronisation.</string>
+    <string name="Error_Alert_SynchroSerie">échec de la synchronisation de la série %1$s.</string>
+    <string name="Error_Alert_InsertionSerie">échec de l\'insertion en base de la série %1$s.</string>
     
     <string name="Sync_Alert_Title">Synchronisation</string>
     <string name="Sync_Alert_Connect">Authentification en cours...</string>

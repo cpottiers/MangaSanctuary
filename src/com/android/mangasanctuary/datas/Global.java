@@ -25,7 +25,7 @@ public class Global {
     private SharedPreferences   pref                 = null;
 
     private Global(Context context) {
-        Log.initialize(context);
+        Log.initialize(context, true);
         Log.d(getLogTag(Global.class), "create new Global");
         Global.context = context;
         this.resources = context.getResources();

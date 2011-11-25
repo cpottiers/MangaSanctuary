@@ -113,4 +113,12 @@ public class Serie {
 
         return true;
     }
+    
+    @Override
+    public String toString() {
+        if(this == null)
+            return "[null]";
+        else
+            return String.format("[id=%1$d/name=%2$s/status=%3$s/count=%4$d]", this.msId, this.msName, this.msStatus, this.msTomeCount);
+    }
 }

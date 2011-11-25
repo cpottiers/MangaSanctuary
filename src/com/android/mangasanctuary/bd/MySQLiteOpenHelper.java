@@ -9,7 +9,7 @@ import com.android.mangasanctuary.datas.Serie;
 import com.cyrilpottiers.androlib.Log;
 
 public class MySQLiteOpenHelper extends SQLiteOpenHelper {
-    
+
     private static final String   DATABASE_NAME                                = "MS.sqlite";
     private static final int      RELEASE1_0                                   = 3;
     private static final int      RELEASE1_2                                   = 4;
@@ -147,11 +147,27 @@ public class MySQLiteOpenHelper extends SQLiteOpenHelper {
 
     public static final String    SELECT_SERIE_FROM_NAME_RQST                  = "SELECT "
                                                                                    + COL_SERIES_ID
+                                                                                   + ", "
+                                                                                   + COL_SERIES_NAME
+                                                                                   + ", "
+                                                                                   + COL_SERIES_STATUS
                                                                                    + " FROM "
                                                                                    + TABLE_SERIES
                                                                                    + " WHERE "
                                                                                    + COL_SERIES_NAME
                                                                                    + " LIKE ?";
+
+    public static final String    SELECT_SERIE_FROM_ID_RQST                    = "SELECT "
+                                                                                   + COL_SERIES_ID
+                                                                                   + ", "
+                                                                                   + COL_SERIES_NAME
+                                                                                   + ", "
+                                                                                   + COL_SERIES_STATUS
+                                                                                   + " FROM "
+                                                                                   + TABLE_SERIES
+                                                                                   + " WHERE "
+                                                                                   + COL_SERIES_ID
+                                                                                   + "=?";
 
     public static final String    SELECT_COUNT_TOME_FROM_SERIE_ID_RQST         = "SELECT COUNT(*) FROM "
                                                                                    + TABLE_TOMES
@@ -232,7 +248,8 @@ public class MySQLiteOpenHelper extends SQLiteOpenHelper {
                                                                                    + TABLE_SERIES
                                                                                    + " ADD COLUMN "
                                                                                    + COL_SERIES_STATUS
-                                                                                   + " INTEGER NOT NULL DEFAULT " + Serie.Status.SUIVIE_VALUE;
+                                                                                   + " INTEGER NOT NULL DEFAULT "
+                                                                                   + Serie.Status.SUIVIE_VALUE;
 
     private static final String[] ALTER_FROM_RELEASE_1_0_TO_RELEASE_1_2        = new String[] { ALTER_TOME_FROM_RELEASE_1_0_TO_RELEASE_1_2, CREATE_MISSING_TABLE };
     private static final String[] ALTER_FROM_RELEASE_1_2_TO_RELEASE_1_3        = new String[] { ALTER_SERIES_FROM_RELEASE_1_2_TO_RELEASE_1_3 };

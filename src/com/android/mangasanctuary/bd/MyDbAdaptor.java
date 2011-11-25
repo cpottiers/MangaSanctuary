@@ -13,6 +13,7 @@ import android.os.Handler;
 import com.android.mangasanctuary.datas.Global;
 import com.android.mangasanctuary.datas.Serie;
 import com.android.mangasanctuary.datas.Tome;
+import com.android.mangasanctuary.datas.Serie.Status;
 import com.android.mangasanctuary.http.ServerConnector;
 import com.cyrilpottiers.androlib.Log;
 
@@ -92,7 +93,7 @@ public class MyDbAdaptor {
             else if (tomeCount > 0) checkTomeIcons(handler, serie.getId());
 
             Serie saved = loadSerieFromCursor(cursor);
-            if (!saved.equals(serie))
+            if (!(result = saved.equals(serie)))
                 result = (database.update(MySQLiteOpenHelper.TABLE_SERIES, values, new StringBuilder().append(MySQLiteOpenHelper.COL_SERIES_ID).append("=?").toString(), new String[] { Integer.toString(serie.getId()) }) >= 0);
         }
         cursor.close();
@@ -124,6 +125,8 @@ public class MyDbAdaptor {
             serie.setId(cursor.getInt(columnIndex));
         if ((columnIndex = cursor.getColumnIndex(MySQLiteOpenHelper.COL_SERIES_NAME)) >= 0)
             serie.setName(cursor.getString(columnIndex));
+        if ((columnIndex = cursor.getColumnIndex(MySQLiteOpenHelper.COL_SERIES_STATUS)) >= 0)
+            serie.setStatus(Status.getValue(cursor.getInt(columnIndex)));
         return serie;
     }
     
@@ -387,12 +390,32 @@ public class MyDbAdaptor {
     //
     //        return result;
     //    }
-
+    
     public Serie lookupSerieFromName(String serie_name) {
         Serie serie = null;
         Cursor cursor = database.rawQuery(MySQLiteOpenHelper.SELECT_SERIE_FROM_NAME_RQST, new String[] { serie_name });
         Log.w(Global.getLogTag(MyDbAdaptor.class), "lookupSerieFromName("
-            + serie_name + ") -> " + cursor.getCount());
+                + serie_name + ") -> " + cursor.getCount());
+        
+        if (cursor.getCount() == 0) {
+            cursor.close();
+            return null;
+        }
+        else {
+            cursor.moveToFirst();
+//            serie = new Serie();
+//            serie.setId(cursor.getInt(cursor.getColumnIndex(MySQLiteOpenHelper.COL_SERIES_ID)));
+            serie = loadSerieFromCursor(cursor);
+        }
+        cursor.close();
+        return serie;
+    }
+
+    public Serie lookupSerieFromId(Integer sid) {
+        Serie serie = null;
+        Cursor cursor = database.rawQuery(MySQLiteOpenHelper.SELECT_SERIE_FROM_ID_RQST, new String[] { String.valueOf(sid) });
+        Log.w(Global.getLogTag(MyDbAdaptor.class), "lookupSerieFromId("
+            + sid + ") -> " + cursor.getCount());
 
         if (cursor.getCount() == 0) {
             cursor.close();
@@ -400,8 +423,7 @@ public class MyDbAdaptor {
         }
         else {
             cursor.moveToFirst();
-            serie = new Serie();
-            serie.setId(cursor.getInt(cursor.getColumnIndex(MySQLiteOpenHelper.COL_SERIES_ID)));
+            serie = loadSerieFromCursor(cursor);
         }
         cursor.close();
         return serie;

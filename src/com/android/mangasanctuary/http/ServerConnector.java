@@ -41,9 +41,11 @@ import com.cyrilpottiers.androlib.arrays.ArraysUtils;
 import com.cyrilpottiers.androlib.cache.CacheFileUtils;
 
 public class ServerConnector {
-    public static final String ERROR      = "error";
-    public static final String EDITION_ID = "eid";
-    public static final int    MAX_RETRY  = 5;
+    public static final String ERROR       = "error";
+    public static final String ERROR_TRACE = "stack";
+    public static final String EDITION_ID  = "eid";
+    public static final String SERIE_ID    = "sid";
+    public static final int    MAX_RETRY   = 5;
 
     /* Enum */
     public enum WSEnum {
@@ -177,6 +179,7 @@ public class ServerConnector {
         public Handler   handler;
         public Object[]  params;
         public ErrorCode error;
+        public Throwable errorTrace;
         public int       id;
 
         private Command(WSEnum type, Handler callback, Object... params) {
@@ -198,7 +201,7 @@ public class ServerConnector {
                         Thread.sleep(100);
                     }
                     catch (InterruptedException e) {
-                        e.printStackTrace();
+                        Log.printStackTrace(Global.getLogTag(HTTPStackCheckLoop.class), e);
                     }
                     getCommand();
                     // No more command
@@ -264,13 +267,33 @@ public class ServerConnector {
                 Message msg = currentCmd.handler.obtainMessage(currentCmd.type.getValue());
                 Bundle bdl = new Bundle();
                 bdl.putInt(ERROR, currentCmd.error.getValue());
-                if (currentCmd.type.equals(WSEnum.GET_TOMEICON)) {
-                    bdl.putInt(EDITION_ID, ((Tome) currentCmd.params[0]).getEditionId());
+
+                switch (currentCmd.type) {
+                    case GET_ID: {
+                        break;
+                    }
+                    case SYNC_SERIES: {
+                        break;
+                    }
+                    case SYNC_MISSING: {
+                        break;
+                    }
+                    case SYNC_EDITION: {
+                        bdl.putInt(EDITION_ID, Integer.parseInt((String) currentCmd.params[1]));
+                        bdl.putInt(SERIE_ID, (Integer) currentCmd.params[2]);
+                        break;
+                    }
+                    case GET_TOMEICON: {
+                        bdl.putInt(EDITION_ID, ((Tome) currentCmd.params[0]).getEditionId());
+                        break;
+                    }
+                    case GET_MISSINGTOMEICON: {
+                        bdl.putInt(EDITION_ID, ((Tome) currentCmd.params[0]).getEditionId());
+                        break;
+                    }
                 }
-                else if (currentCmd.type.equals(WSEnum.SYNC_EDITION)) {
-                    bdl.putInt(EDITION_ID, Integer.parseInt((String) currentCmd.params[0]));
-                }
-                //                bdl.putString(RESULT, currentCmd.result);
+
+                bdl.putSerializable(ERROR_TRACE, currentCmd.errorTrace);
                 msg.setData(bdl);
 
                 currentCmd.handler.sendMessage(msg);
@@ -380,7 +403,7 @@ public class ServerConnector {
                 break;
             }
             catch (Exception e) {
-                e.printStackTrace();
+                Log.printStackTrace(Global.getLogTag(ServerConnector.class), e);
                 Log.i(Global.getLogTag(ServerConnector.class), "HTTP error["
                     + retry + "]:" + e.getMessage());
                 retry++;
@@ -394,7 +417,8 @@ public class ServerConnector {
 
         String result = stringBuffer.toString();
 
-        CacheFileUtils.writeDebugFile("http_" + cmd.id + ".html", result);
+        if (Log.isDebugging())
+            CacheFileUtils.writeDebugFile("http_" + cmd.id + ".html", result);
 
         if (result == null || result.length() == 0) {
             cmd.error = ErrorCode.UNKNOWN;
@@ -500,13 +524,14 @@ public class ServerConnector {
             ArrayList<Serie> series = XMLParser.parseSeriesXML(response);
 
             for (Serie serie : series) {
-                if(!Global.getAdaptor().insertSerie(cmd.handler, serie))
-                    throw new Exception();
+                if (!Global.getAdaptor().insertSerie(cmd.handler, serie))
+                    throw new Exception(res.getString(R.string.Error_Alert_InsertionSerie, serie.toString()));
             }
         }
         catch (Exception e) {
-            e.printStackTrace();
+            Log.printStackTrace(Global.getLogTag(ServerConnector.class), e);
             cmd.error = ErrorCode.SYNCSERIES_ERROR;
+            cmd.errorTrace = e;
             return;
         }
     }
@@ -560,8 +585,9 @@ public class ServerConnector {
             }
             if (sb.length() > 0) sb.deleteCharAt(sb.length() - 1);
             response = sb.toString();
-            
-            CacheFileUtils.writeDebugFile("http_" + cmd.id + "_1.html", response);
+
+            if (Log.isDebugging())
+                CacheFileUtils.writeDebugFile("http_" + cmd.id + "_1.html", response);
 
             //            CookieStore store = httpclient.getCookieStore();
             //
@@ -591,11 +617,12 @@ public class ServerConnector {
             }
             if (sb.length() > 0) sb.deleteCharAt(sb.length() - 1);
             response = sb.toString();
-            
-            CacheFileUtils.writeDebugFile("http_" + cmd.id + "_2.html", response);
+
+            if (Log.isDebugging())
+                CacheFileUtils.writeDebugFile("http_" + cmd.id + "_2.html", response);
         }
         catch (Exception e) {
-            e.printStackTrace();
+            Log.printStackTrace(Global.getLogTag(ServerConnector.class), e);
             cmd.error = ErrorCode.NETWORK_ERROR;
             return;
         }
@@ -683,7 +710,7 @@ public class ServerConnector {
         if (cmd.error != ErrorCode.NONE) return;
 
         try {
-            response = response.substring(response.indexOf("<div id=\"liste_volumes_collection\">"));
+            response = response.substring(response.indexOf("<div id=\"liste_volumes_collection\""));
             response = response.substring(0, response.indexOf("</div>", response.indexOf("</ul>")) + 6);
             ArrayList<Tome> tomes = XMLParser.parseEditionXML(response);
 
@@ -694,8 +721,9 @@ public class ServerConnector {
             }
         }
         catch (Exception e) {
-            e.printStackTrace();
+            Log.printStackTrace(Global.getLogTag(ServerConnector.class), e);
             cmd.error = ErrorCode.SYNCEDITION_ERROR;
+            cmd.errorTrace = e;
             return;
         }
     }
@@ -713,10 +741,10 @@ public class ServerConnector {
         Resources res = Global.getResources();
         StringBuilder sb = new StringBuilder();
         if (!tome.getIconUrl().startsWith("http://")) {
-//            if(tome.isMissingTome)
-//                sb.append(res.getString(R.string.MS_ROOT_MOBILE)).append('/');
-//            else 
-                sb.append(res.getString(R.string.MS_ROOT));
+            //            if(tome.isMissingTome)
+            //                sb.append(res.getString(R.string.MS_ROOT_MOBILE)).append('/');
+            //            else 
+            sb.append(res.getString(R.string.MS_ROOT));
         }
         sb.append(tome.getIconUrl());
         HttpGet httpGet = null;
@@ -763,7 +791,7 @@ public class ServerConnector {
                 break;
             }
             catch (Exception e) {
-                e.printStackTrace();
+                Log.printStackTrace(Global.getLogTag(ServerConnector.class), e);
                 Log.i(Global.getLogTag(ServerConnector.class), "HTTP error["
                     + retry + "]:" + e.getMessage());
                 retry++;
@@ -775,7 +803,8 @@ public class ServerConnector {
             return;
         }
 
-        CacheFileUtils.writeBinDebugFile("http_" + cmd.id + ".bin", tome.getIcon());
+        if (Log.isDebugging())
+            CacheFileUtils.writeBinDebugFile("http_" + cmd.id + ".bin", tome.getIcon());
 
         if (!Global.getAdaptor().updateTomeIcon(tome)) {
             cmd.error = ErrorCode.GETICON_ERROR;
@@ -792,8 +821,8 @@ public class ServerConnector {
         Log.e(Global.getLogTag(ServerConnector.class), "[" + cmd.id
             + "] EXEC GET ICON tid=" + tome.getId() + " turl="
             + tome.getIconUrl());
-        if(tome.getIcon() != null) return;
-        if(tome.getIconUrl()!=null) {
+        if (tome.getIcon() != null) return;
+        if (tome.getIconUrl() != null) {
             ServerConnector.getTomeIcon(cmd.handler, tome);
         }
         else {
@@ -817,26 +846,27 @@ public class ServerConnector {
 
             String response = getResponse(cmd, httpGet, Charset.forName("UTF-8"));
             if (cmd.error != ErrorCode.NONE) return;
-            
+
             try {
                 response = response.substring(response.indexOf("<div id=\"image_serie\""));
                 response = response.substring(0, response.indexOf("</div>") + 6);
                 Document doc = Jsoup.parse(response);
                 Element node = doc.getElementsByTag("img").first();
                 String sUrl = node.attr("src");
-                if(sUrl!=null) {
-                    if(sUrl.indexOf('/') != 0 && !sUrl.startsWith("http"))
+                if (sUrl != null) {
+                    if (sUrl.indexOf('/') != 0 && !sUrl.startsWith("http"))
                         sUrl = new StringBuilder().append('/').append(sUrl).toString();
                     tome.setIconUrl(sUrl);
                 }
                 Global.getAdaptor().insertTome(cmd.handler, tome);
             }
             catch (Exception e) {
-                e.printStackTrace();
+                Log.printStackTrace(Global.getLogTag(ServerConnector.class), e);
                 cmd.error = ErrorCode.GETMISSINGTOMEICON_ERROR;
+                cmd.errorTrace = e;
                 return;
             }
-            
+
         }
     }
 }
